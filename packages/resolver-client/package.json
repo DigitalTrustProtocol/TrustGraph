@@ -1,6 +1,24 @@
 {
   "name": "@dtp/resolver-client",
   "version": "0.1.0",
-  "private": true,
-  "type": "module"
+  "description": "WebSocket client for the resolver protocol: NIP-01 framing, DTP operations, NIP-42 with a caller signer, pipelining, reconnect, and push subscriptions",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json && node ../../scripts/fix-esm-extensions.mjs dist"
+  },
+  "dependencies": {
+    "@dtp/trust-query": "0.1.0"
+  }
 }
