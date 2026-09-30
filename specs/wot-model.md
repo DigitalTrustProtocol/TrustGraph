@@ -379,7 +379,13 @@ Delete winners never appear (they are slot state, not statements).
 **Mode.**
 
 - `selected` (default): at most one record per (author, key, kind): the
-  selected statement of §4.3 over the filter's buckets.
+  selected statement of §4.3 over the filter's buckets. With `contextMatch:
+  any` there is no chain order, so the P2 order (`scopeRank` desc,
+  `created_at` desc, `id` asc) picks across all buckets. With
+  `includeInactive`, inactive records take part in the selection.
+  `values`, `labels`, `subjectTypes`, `since`, and `until` apply to the
+  selected record, so a filter never surfaces a statement that selection
+  set aside.
 - `raw`: every winner that passes the filters (for event lists and exports).
 
 **Merging keys** (`mergeKeys: true`, incoming only): the keys are one

@@ -89,13 +89,21 @@ server's own pubkey, used to sign its membership list), `limitation`, and a
 limits }`. In v1 `capabilities` always contains every operation in this
 document; it exists so later versions can add operations.
 
+*Interim (until decision D3 lands gaps G8 / G10 / G12 in `@dtp/trust-graph`):*
+a TypeScript server lists only the operations it implements in
+`capabilities`, names each missing one with its reason in
+`dtp.unsupported` (`{ "graph.field": "…" }`), and lists the open model gaps
+in `dtp.gaps` (`["G8", "G10", "G12"]`). Calls to a missing operation answer
+`DTP-ERR <reqId> unsupported <reason>`. Both fields disappear when the gaps
+close.
+
 ## Messages
 
 | Direction | Message | Meaning |
 | --- | --- | --- |
 | client → server | `["EVENT", <event>]` | Ingest one signed event ([§ Ingest](#ingest-event)) |
 | client → server | `["AUTH", <kind 22242 event>]` | NIP-42 authentication |
-| client → server | `["REQ", <sub>, <filter>, …]` | Limited reads: `ids` (≤ 500), `authors` + `kinds` for the held kinds (≤ 20 authors), and the NIP-43 kinds `13534` / `33534`; anything else is `CLOSED` with `unsupported:` |
+| client → server | `["REQ", <sub>, <filter>, …]` | Limited reads: `ids` (≤ 500), `authors` + `kinds` for the held kinds (≤ 20 authors), and the NIP-43 kinds `13534` / `33534`; anything else is `CLOSED` with `unsupported:`. A read ends with `EOSE`; later events are not streamed |
 | client → server | `["CLOSE", <sub>]` | End a read |
 | client → server | `["DTP", <reqId>, <op>, <params>]` | Resolver or lookup operation |
 | client → server | `["DTP-CANCEL", <reqId>]` | Abandon an in-flight operation |
@@ -189,7 +197,10 @@ Standard Nostr relay authentication (NIP-42).
 - `OK` messages use NIP-01 prefixes: `duplicate:` (already stored, or older
   than the stored winner), `invalid:`, `blocked:` (kind or scope not
   accepted, or deleted), `rate-limited:`, `auth-required:`, `restricted:`,
-  `error:`.
+  `error:`. `duplicate:` answers carry `true`; a kind `5` that matches no
+  held event (and names no own `a` slot) is not stored and answers
+  `false` with `blocked:`. Signature checks run before slot reduction, so a
+  forged copy of a stored event is `invalid:`, not `duplicate:`.
 - Backpressure: at most `maxPendingOks` events per connection may be waiting
   for `OK`; beyond that the server stops reading the socket, so a fast writer
   is slowed by TCP instead of growing queues.
@@ -233,7 +244,7 @@ counts and pages. They feed lists, profile panels, and graph views.
 | `lookup.outgoing` | `{ keys, …lookup }` | `LookupPage` of statements **by** the keys (pubkeys) |
 | `lookup.counts` | `{ keys, direction, kinds?, context?, contextMatch?, values?, subjectTypes?, labels?, mergeKeys?, includeInactive?, now? }` | `{ graphVersion, counts: { [key \| "merged"]: { trust, neutral, distrust, ratings } } }` |
 | `lookup.batch` | `{ queries: [{ id, op: "incoming" \| "outgoing" \| "counts", params }] (≤ 50) }` | `{ graphVersion, results: { [id]: result }, errors? }` |
-| `graph.neighborhood` | `{ keys \| centerId: number \| "<type>:<value>", direction?, valueFilter?, context?, limit? }` | `{ graphVersion, centerId, truncated, nodes, edges }` — incoming + outgoing lookups for one center, shaped for graph views (no X chrome) |
+| `graph.neighborhood` | `{ keys \| centerId: number \| "<type>:<value>", direction?, valueFilter?, context?, limit? }` | `{ graphVersion, centerId, truncated, nodes, edges }` — incoming + outgoing lookups for one center, shaped for graph views (no X chrome). With `keys`, the first key is the center and the other `p:` keys also expand outward. Past `limit`, edges are kept in `eventId` order (then `truncated` and `neighborhoodLimit`) |
 
 Lookup fields (`…lookup`):
 
@@ -295,13 +306,14 @@ Signed events are read with standard `REQ` (`ids`), not a custom operation.
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `rootPubkey` | session default; required if the session has none | Observer |
+| `context` | `identity` for `trust.*`, `""` for `rating.*` (product profile `attention`, [wot-model.md §9](wot-model.md#9-product-profile-attention-scope-profile-xcom)) | Score context `SC` |
 | `now` | server clock | Activity time for `x` / `y` |
 | `bounds.maxDepth` | 4 | 1–7, capped by the server's `maxDepth` guardrail |
 | `format` | `default` | `path` adds `pathView` |
 | `followTrustThreshold` | 75 | Green knob; hop threshold for trust queries |
 | `followTrustRed` | 25 | Red knob |
 | `hopContext` | `identity` | Hop context `TC` ([wot-model.md §6](wot-model.md#6-the-trust-walk)) |
-| `statementLimit` | 50 | Max statements / claims per result, up to `maxStatementLimit`; counts stay exact. Full lists come from lookups |
+| `statementLimit` | 50 | Max statements / claims per result, up to `maxStatementLimit`; counts stay exact. Statements and claims are returned in P3 order (`distance` asc, `createdAt` desc, `eventId` asc) and cut after that sort, so the cut is the same on every server. Full lists come from lookups |
 | `bindingMode` | `lenient` (decision D5) | `lenient` or `strict` ([identity-binding.md](identity-binding.md)) |
 | `deadlineMs` | server's `operationDeadline` | Lower (never raise) the time guardrail for this request |
 
@@ -316,14 +328,14 @@ The rating hop threshold is fixed at 1 by the product profile
 | `completeDepth` | Deepest walk level fully built before a guardrail stopped it ([wot-model.md §6.2](wot-model.md#62-guardrails)) |
 | `statementsTruncated: true` | `statements` / `claims` were cut by `statementLimit` |
 | `coverage` | `complete` \| `partial` |
-| `coverageReasons[]` | `root-warming` (the server is still fetching data for this root: first sync of a new root, or open requests to writers), `claims-pending` (strict mode is waiting for a candidate's `10011`) |
+| `coverageReasons[]` | `root-warming` (the server is still fetching data for this root: first sync of a new root, or open requests to writers), `claims-pending` (strict mode is waiting for a candidate's `10011`), `binding-unsupported` (interim: the server cannot bind X accounts yet — gap G8 — so a `user:id` subject is answered without binds and routes through X accounts are missing) |
 | `binding` | For `user:id` subjects: `{ mode, pubkey?, source, confirmed, witnessEventId?, witnessDegree?, claimEventId?, cutCandidate?, cutReason? }` ([identity-binding.md §8](identity-binding.md#8-result-provenance)) |
 
 ## Push topics
 
 | Topic | Data |
 | --- | --- |
-| `graph` | `{ graphVersion, changed?: { subjects: wire ids } }`, coalesced to ≤ 4 per second; `changed` is included when at most 500 subjects changed since the last push |
+| `graph` | `{ graphVersion, changed?: { subjects: wire ids } }`, coalesced to ≤ 4 per second; `changed` is included when at most 500 subjects changed since the last push. A changed statement lists its subject and its author (`p:<hex>`); a changed claim lists `i:user:id:<n>`. Results for other subjects can change through hops, so a client that caches walks refreshes them on any push |
 | `coverage` | `{ rootPubkey, coverage, reasons }` when a root's warming finishes |
 | `want` | `{ demandId, authors?, ids?, kinds }` — data the server is missing; only useful to writers that can fetch it ([GlobalServer sync-server.md](../../GlobalServer/specs/sync-server.md#optional-demand-hints)) |
 

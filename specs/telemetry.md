@@ -61,8 +61,8 @@ All on the admin listener:
 | --- | --- |
 | `GET /` | The pages (single-page app, bundled) |
 | `GET /admin/api/telemetry` | A JSON snapshot of everything the pages show (schema `TrustGraph/schemas/telemetry.v1.json`) |
-| `GET /admin/api/stream` | Server-Sent Events: a snapshot delta every 2 s, for live charts |
-| `GET /admin/api/history?series=…&window=…` | Time series from the in-memory ring buffers |
+| `GET /admin/api/stream` | Server-Sent Events: a snapshot delta every 2 s, for live charts. v1 sends `event: snapshot` with the full snapshot as `data` (a delta encoding may follow; clients must accept full snapshots) |
+| `GET /admin/api/history?series=…&window=…` | Time series from the in-memory ring buffers: `series` ∈ `ops`, `ingest`, `rss`, `edges`; `window` in seconds (≤ 86 400); answer `{ series, points: [[unixSeconds, value], …] }` |
 | `GET /metrics` | Prometheus text format, metric names below |
 
 - The JSON has the same field names on both servers. A field that does not
