@@ -17,9 +17,10 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npm run lint
+      # Dependents typecheck against each package's dist declarations.
+      - name: Build
+        run: npm run build
       - name: Typecheck
         run: npm run typecheck
       - name: Test (packages + conformance corpus)
         run: npm test
-      - name: Build
-        run: npm run build

@@ -21,8 +21,8 @@
     "lint": "oxlint --deny-warnings",
     "typecheck": "npm run typecheck --workspaces --if-present && tsc -p tsconfig.test.json",
     "test": "vitest run",
-    "build": "npm run build --workspaces --if-present",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "build": "npm run build -w @dtp/trust-graph -w @dtp/trust-protocol -w @dtp/telemetry-ui && npm run build -w @dtp/trust-query -w @dtp/relay-sync && npm run build -w @dtp/resolver-client -w @dtp/conformance",
+    "check": "npm run lint && npm run build && npm run typecheck && npm run test",
     "divergence:check": "node scripts/trust-graph-divergence.mjs"
   },
   "devDependencies": {
