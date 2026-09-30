@@ -4,7 +4,7 @@ Shared Web-of-Trust model for the Digital Trust Protocol: one normative spec,
 one TypeScript library, one conformance corpus, and one resolver protocol
 (a NIP-01 WebSocket, identical on both servers).
 
-Status: **design** (specs only, no code yet) · 2026-09-30
+Status: **library, corpus, and resolver protocol built** · 2026-10-01
 
 ## Why this exists
 
