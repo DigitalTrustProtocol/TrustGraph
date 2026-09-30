@@ -57,7 +57,7 @@ describe('properties (conformance.md § Properties)', () => {
   it('idempotence: applying every record twice changes nothing', () => {
     for (const testCase of plain) {
       const ops = defaultOps(testCase)
-      const doubled = ops.flatMap((op) => (op.op === 'apply' ? [op, op] : [op]))
+      const doubled = ops.flatMap((op): CorpusOp[] => (op.op === 'apply' ? [op, op] : [op]))
       expect(outputs(testCase, doubled), testCase.id).toEqual(outputs(testCase, ops))
     }
   })
