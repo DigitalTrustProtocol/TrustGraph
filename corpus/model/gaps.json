@@ -3,9 +3,9 @@
     {
       "id": "gap-g1-rating-context-falls-back",
       "model": "dtp-wot/1",
-      "tags": ["rating", "context", "gap:G1"],
+      "tags": ["rating", "context"],
       "profile": "x.com",
-      "description": "NIP-32014 'no fallback': a rating query for c=identity must not see an empty-context rating. Today's heap falls back to the global bucket.",
+      "description": "NIP-32014 'no fallback': a rating query for c=identity must not see an empty-context rating. Fixed gap G1: the heap used to fall back to the global bucket.",
       "records": [
         { "id": "@g1-rate", "pubkey": "@root", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 70, "scopeRank": 2 }
       ],
@@ -13,17 +13,16 @@
         {
           "type": "rating",
           "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "identity", "now": 10 },
-          "expectModel": { "claimCount": 0, "degree": 0 },
-          "expectCurrent": { "claimCount": 1, "degree": 1, "averageScore": 70 }
+          "expect": { "claimCount": 0, "degree": 0 }
         }
       ]
     },
     {
       "id": "gap-g2-first-inserted-slot-wins",
       "model": "dtp-wot/1",
-      "tags": ["walk", "slot", "gap:G2"],
+      "tags": ["walk", "slot"],
       "profile": "x.com",
-      "description": "One author has an empty-scope slot and an x.com slot about the same node in one bucket. P2: higher scopeRank wins. Today: the first inserted record wins.",
+      "description": "One author has an empty-scope slot and an x.com slot about the same node in one bucket. P2: higher scopeRank wins. Fixed gap G2: the first inserted record used to win.",
       "records": [
         { "addressKey": "32009:@root:empty-scope", "id": "@g2-empty", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": -1, "scopeRank": 1 },
         { "addressKey": "32009:@root:xcom-scope", "id": "@g2-xcom", "pubkey": "@root", "kind": 32009, "created_at": 5, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1, "scopeRank": 2 }
@@ -32,8 +31,7 @@
         {
           "type": "trust",
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 20 },
-          "expectModel": { "trust": 1, "distrust": 0, "resolution": "trusted", "sourceEventIds": ["@g2-xcom"] },
-          "expectCurrent": { "trust": 0, "distrust": 1, "resolution": "distrusted", "sourceEventIds": ["@g2-empty"] }
+          "expect": { "trust": 1, "distrust": 0, "resolution": "trusted", "sourceEventIds": ["@g2-xcom"] }
         }
       ]
     },
@@ -59,9 +57,9 @@
     {
       "id": "gap-g4-disconnected-neutral-leak",
       "model": "dtp-wot/1",
-      "tags": ["walk", "neutral", "gap:G4", "gap:G7"],
+      "tags": ["walk", "neutral"],
       "profile": "x.com",
-      "description": "The root's only statement about Alice is Neutral. Model (G4 proposal): disconnected carries no statements and neutral 0. Today the Neutral leaks, counted twice because the subject is also a peer (G7 shared counters).",
+      "description": "The root's only statement about Alice is Neutral. D4 option A: disconnected carries no statements and neutral 0. Fixed gaps G4 and G7: the Neutral used to leak, counted twice because the subject shared its counters with its peer score.",
       "source": "AttentionX src/graph/graph.test.ts (keeps a direct Neutral without connecting)",
       "records": [
         { "id": "@g4-root-alice", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 0 }
@@ -70,11 +68,7 @@
         {
           "type": "trust",
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@alice" }, "context": "identity", "now": 10 },
-          "expectModel": { "connected": false, "degree": 0, "neutral": 0, "trust": 0, "statements": [] },
-          "expectCurrent": {
-            "connected": false, "degree": 0, "neutral": 2, "trust": 0,
-            "statements": [{ "eventId": "@g4-root-alice", "value": 0 }, { "eventId": "@g4-root-alice", "value": 0 }]
-          }
+          "expect": { "connected": false, "degree": 0, "neutral": 0, "trust": 0, "statements": [] }
         }
       ]
     },
@@ -102,9 +96,9 @@
     {
       "id": "gap-g10-node-budget",
       "model": "dtp-wot/1",
-      "tags": ["walk", "budget", "gap:G10"],
+      "tags": ["walk", "budget"],
       "profile": "x.com",
-      "description": "wot-model.md §6.2 with maxReachedNodes 2 (the root counts; only p nodes get levels). Level 1 {alice} fits (2 nodes); building level 2 would reach bob (3 > 2), so the walk stops with completeDepth 1. No hit up to degree 2, so the result is disconnected and truncated. Today's walk has no budgets.",
+      "description": "wot-model.md §6.2 with maxReachedNodes 2 (the root counts; only p nodes get levels). Level 1 {alice} fits (2 nodes); building level 2 would reach bob (3 > 2), so the walk stops with completeDepth 1. No hit up to degree 2, so the result is disconnected and truncated. Fixed gap G10: the walk used to have no budgets.",
       "records": [
         { "id": "@g10-r-a", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
         { "id": "@g10-a-b", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 },
@@ -114,17 +108,16 @@
         {
           "type": "trust",
           "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:77" }, "context": "identity", "now": 10, "budgets": { "maxReachedNodes": 2 } },
-          "expectModel": { "connected": false, "degree": 0, "truncated": true, "truncatedReasons": ["nodeBudget"], "completeDepth": 1 },
-          "expectCurrent": { "connected": true, "degree": 3 }
+          "expect": { "connected": false, "degree": 0, "truncated": true, "truncatedReasons": ["nodeBudget"], "completeDepth": 1 }
         }
       ]
     },
     {
       "id": "gap-g10-record-budget",
       "model": "dtp-wot/1",
-      "tags": ["walk", "budget", "gap:G10"],
+      "tags": ["walk", "budget"],
       "profile": "x.com",
-      "description": "wot-model.md 6.2 scanned-record counting. Building level 1 scans the root's two selected statements (alice, and the post, which is scanned but not a hop): 2 records. Building level 2 scans alice's statement about bob: 3 in total. Hit checks are not counted. With maxWalkRecords 2 level 2 does not fit (completeDepth 1, edgeBudget); with 3 it fits and the hit at degree 3 is exact and not truncated. Today's walk has no budgets.",
+      "description": "wot-model.md 6.2 scanned-record counting. Building level 1 scans the root's two selected statements (alice, and the post, which is scanned but not a hop): 2 records. Building level 2 scans alice's statement about bob: 3 in total. Hit checks are not counted. With maxWalkRecords 2 level 2 does not fit (completeDepth 1, edgeBudget); with 3 it fits and the hit at degree 3 is exact and not truncated. Fixed gap G10: the walk used to have no budgets.",
       "records": [
         { "id": "@g10r-r-a", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
         { "id": "@g10r-r-post", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:5", "context": "identity", "value": 1 },
@@ -135,14 +128,12 @@
         {
           "type": "trust",
           "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:77" }, "context": "identity", "now": 10, "budgets": { "maxWalkRecords": 2 } },
-          "expectModel": { "connected": false, "degree": 0, "truncated": true, "truncatedReasons": ["edgeBudget"], "completeDepth": 1 },
-          "expectCurrent": { "connected": true, "degree": 3 }
+          "expect": { "connected": false, "degree": 0, "truncated": true, "truncatedReasons": ["edgeBudget"], "completeDepth": 1 }
         },
         {
           "type": "trust",
           "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:77" }, "context": "identity", "now": 10, "budgets": { "maxWalkRecords": 3 } },
-          "expectModel": { "connected": true, "degree": 3, "sourceEventIds": ["@g10r-b-t"], "completeDepth": null },
-          "expectCurrent": { "connected": true, "degree": 3, "sourceEventIds": ["@g10r-b-t"] }
+          "expect": { "connected": true, "degree": 3, "sourceEventIds": ["@g10r-b-t"], "completeDepth": null }
         }
       ]
     }

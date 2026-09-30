@@ -33,6 +33,7 @@ import {
   clampFollowTrustThreshold,
 } from '../shared/wot-follow-trust-threshold'
 import { averageRatingScore } from '../shared/rating-score'
+import { walkExtras, walkOptions } from '../query'
 
 function emptyRatingResult(
   query: RatingQuery,
@@ -113,7 +114,7 @@ export function executeRatingQuery(
     followTrustThreshold,
   )
 
-  const scores = resolver.resolve(root, subjectId, {
+  const walk = resolver.walk(root, subjectId, {
     graph,
     trustContext: IDENTITY_TRUST_CONTEXT,
     scoreContext: context,
@@ -122,7 +123,10 @@ export function executeRatingQuery(
     followTrustThreshold: 1,
     now,
     kind: RATING_STATEMENT_KIND,
+    ...walkOptions(query),
   })
+  const scores = walk.scores
+  const extras = walkExtras(walk, query.subject)
 
   const subjectScore =
     scores.find((score) => score instanceof RatingScore && score.subject === subjectId) ??
@@ -135,14 +139,17 @@ export function executeRatingQuery(
     !subjectScore.edges ||
     subjectScore.edges.length === 0
   ) {
-    return emptyRatingResult(
-      query,
-      context,
-      now,
-      graphVersion,
-      followTrustThreshold,
-      followTrustRed,
-    )
+    return {
+      ...emptyRatingResult(
+        query,
+        context,
+        now,
+        graphVersion,
+        followTrustThreshold,
+        followTrustRed,
+      ),
+      ...extras,
+    }
   }
 
   const distance = Math.max(0, subjectScore.degree - 1)
@@ -159,14 +166,17 @@ export function executeRatingQuery(
     evidence.push(claim)
   }
   if (evidence.length === 0) {
-    return emptyRatingResult(
-      query,
-      context,
-      now,
-      graphVersion,
-      followTrustThreshold,
-      followTrustRed,
-    )
+    return {
+      ...emptyRatingResult(
+        query,
+        context,
+        now,
+        graphVersion,
+        followTrustThreshold,
+        followTrustRed,
+      ),
+      ...extras,
+    }
   }
   evidence.sort(
     (left, right) =>
@@ -234,6 +244,7 @@ export function executeRatingQuery(
     graphVersion,
     followTrustThreshold,
     followTrustRed,
+    ...extras,
   }
 }
 

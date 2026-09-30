@@ -1,6 +1,10 @@
 /**
  * Vendored from DigitalTrustProtocol/Trust (src/lib/trust/graph/Graph.ts).
- * Attention: edges are EventRecord; i↔p identity map converts i-nodes in place.
+ * Attention: edges are EventRecord.
+ * @dtp/trust-graph (decision D3): X accounts and pubkeys stay separate nodes;
+ * own evidence, claims, and witness statements are indexed here and the
+ * walk decides binds per root, level, and mode (G8). A Delete unlinks only
+ * its own slot (G3). See DIVERGENCE.json.
  */
 
 import { isValidAt, trustEdgeValue, type IEdge } from './Edge'
@@ -85,6 +89,44 @@ function contextKey(kind: ScoreKind, context: string): string {
   return contextIndexKeys(kind, context)[0]!
 }
 
+export type OwnEvidenceSource = 'bio' | 'post'
+
+const OWN_EVIDENCE_SOURCES: readonly OwnEvidenceSource[] = ['bio', 'post']
+
+/** Own evidence that `iKey` is controlled by `pubkey` (identity-binding.md §4 step 1). */
+export interface OwnEvidenceEntry {
+  iKey: string
+  pubkey: string
+  source: OwnEvidenceSource
+  /** The root it applies to; absent = every root. */
+  root?: string
+}
+
+/** The X ids a pubkey's winning kind 10011 names (identity-binding.md §2.6). */
+export interface IdentityClaim {
+  twitterIds: Set<string>
+  eventId?: string
+}
+
+function ownEvidenceKey(root: string | undefined, iKey: string, source: OwnEvidenceSource): string {
+  return `${root ?? ''}\n${iKey}\n${source}`
+}
+
+export const USER_ID_PREFIX = 'user:id:'
+
+/** Witness candidate: a `v=1` 32009 about `user:id:X` with an npub hint that is not the author. */
+function isWitnessEdge(edge: IEdge): boolean {
+  return (
+    edge.kind === TRUST_STATEMENT_KIND &&
+    edge.subjectType === 'i' &&
+    edge.subject !== undefined &&
+    edge.subject.toLowerCase().startsWith(USER_ID_PREFIX) &&
+    edge.hintPubkey !== undefined &&
+    edge.hintPubkey.toLowerCase() !== edge.pubkey.toLowerCase() &&
+    edge.nValue === 1
+  )
+}
+
 function unlinkPeerEdge(
   adjacency: Map<number, PeerEdgeMap>,
   contextIndex: number,
@@ -118,10 +160,27 @@ export class Graph implements IGraph {
   edgesIndex: Map<string, number> = new Map()
   edgesList: Array<IEdge | null> = []
 
-  /** Canonical i-subject (`user:id:<digits>`) → pubkey. */
+  /**
+   * Root-less own evidence: canonical i-subject (`user:id:<digits>`) → pubkey.
+   * A view of `ownEvidence` for callers outside the walk (sync frontier,
+   * neighborhood). The walk decides binds itself (gap G8).
+   */
   iToP: Map<string, string> = new Map()
-  /** Pubkey → i-subjects. 1 Nostr → N X. */
+  /** Pubkey → i-subjects of root-less own evidence. 1 Nostr → N X. */
   pToI: Map<string, Set<string>> = new Map()
+
+  /**
+   * The observer's own evidence (Bio / linking post), keyed by
+   * `root \n iKey \n source`. Input to `bind(R, X, ℓ)` step 1; never a
+   * global bind (identity-binding.md §4).
+   */
+  ownEvidence: Map<string, OwnEvidenceEntry> = new Map()
+  /** Identity claims: pubkey → the X ids its winning kind 10011 names. */
+  identityClaims: Map<string, IdentityClaim> = new Map()
+  /** X node index → witness edge indexes (32009, v=1, npub hint, hint ≠ author). */
+  witnessIn: Map<number, Set<number>> = new Map()
+  /** Hinted pubkey node index → X node index → witness edge count. */
+  hintedAs: Map<number, Map<number, number>> = new Map()
 
   eventAddedSinceLastSave = 0
   eventRemovedSinceLastSave = 0
@@ -135,52 +194,152 @@ export class Graph implements IGraph {
     this.edgesList = []
     this.iToP.clear()
     this.pToI.clear()
+    this.ownEvidence.clear()
+    this.identityClaims.clear()
+    this.witnessIn.clear()
+    this.hintedAs.clear()
     this.eventAddedSinceLastSave = 0
     this.eventRemovedSinceLastSave = 0
   }
 
-  bindIdentity(iSubject: string, pubkey: string): void {
+  /**
+   * Records own evidence that `iSubject` is controlled by `pubkey`, for
+   * `options.root` only, or for every root when `root` is omitted (the
+   * extension's single operator). The walk turns it into a bind per root,
+   * level, and binding mode (gap G8); nodes are never merged.
+   */
+  bindIdentity(
+    iSubject: string,
+    pubkey: string,
+    options: { root?: string; source?: OwnEvidenceSource } = {},
+  ): void {
     const iKey = iSubject.toLowerCase()
     const pKey = pubkey.toLowerCase()
+    const root = options.root?.toLowerCase()
+    const source = options.source ?? 'bio'
+    this.addNode(iKey, 'i')
+    this.addNode(pKey, 'p')
+    this.ownEvidence.set(ownEvidenceKey(root, iKey, source), {
+      iKey,
+      pubkey: pKey,
+      source,
+      ...(root !== undefined ? { root } : {}),
+    })
+    if (root === undefined) this.refreshRootlessBind(iKey)
+  }
+
+  /**
+   * Removes own evidence for `iSubject` (gap G6): for `options.root` (or the
+   * root-less entry when omitted), for one `source` or all of them. Returns
+   * whether anything was removed.
+   */
+  unbindIdentity(
+    iSubject: string,
+    options: { root?: string; source?: OwnEvidenceSource } = {},
+  ): boolean {
+    const iKey = iSubject.toLowerCase()
+    const root = options.root?.toLowerCase()
+    let removed = false
+    for (const source of options.source ? [options.source] : OWN_EVIDENCE_SOURCES) {
+      removed = this.ownEvidence.delete(ownEvidenceKey(root, iKey, source)) || removed
+    }
+    if (root === undefined) this.refreshRootlessBind(iKey)
+    return removed
+  }
+
+  /** Own evidence that applies to `root`: its own entries plus root-less ones. */
+  ownEvidenceFor(root: string): OwnEvidenceEntry[] {
+    const key = root.toLowerCase()
+    return [...this.ownEvidence.values()].filter(
+      (entry) => entry.root === undefined || entry.root === key,
+    )
+  }
+
+  /** Replaces the X ids claimed by `pubkey` (its winning kind 10011). */
+  setIdentityClaims(pubkey: string, twitterIds: Iterable<string>, eventId?: string): void {
+    this.identityClaims.set(pubkey.toLowerCase(), {
+      twitterIds: new Set(twitterIds),
+      ...(eventId !== undefined ? { eventId } : {}),
+    })
+  }
+
+  /** Adds one claimed X id for `pubkey`. */
+  addIdentityClaim(pubkey: string, twitterId: string, eventId?: string): void {
+    const key = pubkey.toLowerCase()
+    const existing = this.identityClaims.get(key)
+    if (existing) {
+      existing.twitterIds.add(twitterId)
+      if (eventId !== undefined) existing.eventId = eventId
+      return
+    }
+    this.setIdentityClaims(key, [twitterId], eventId)
+  }
+
+  removeIdentityClaims(pubkey: string): boolean {
+    return this.identityClaims.delete(pubkey.toLowerCase())
+  }
+
+  /** P's claim of X, or undefined when P's kind 10011 does not name X. */
+  identityClaim(pubkey: string, twitterId: string): IdentityClaim | undefined {
+    const claim = this.identityClaims.get(pubkey.toLowerCase())
+    return claim?.twitterIds.has(twitterId) ? claim : undefined
+  }
+
+  private refreshRootlessBind(iKey: string): void {
     const previous = this.iToP.get(iKey)
-    this.iToP.set(iKey, pKey)
-    let aliases = this.pToI.get(pKey)
+    const entry =
+      this.ownEvidence.get(ownEvidenceKey(undefined, iKey, 'bio')) ??
+      this.ownEvidence.get(ownEvidenceKey(undefined, iKey, 'post'))
+    if (previous !== undefined && previous !== entry?.pubkey) {
+      const aliases = this.pToI.get(previous)
+      aliases?.delete(iKey)
+      if (aliases?.size === 0) this.pToI.delete(previous)
+    }
+    if (!entry) {
+      this.iToP.delete(iKey)
+      return
+    }
+    this.iToP.set(iKey, entry.pubkey)
+    let aliases = this.pToI.get(entry.pubkey)
     if (!aliases) {
       aliases = new Set()
-      this.pToI.set(pKey, aliases)
+      this.pToI.set(entry.pubkey, aliases)
     }
     aliases.add(iKey)
+  }
 
-    if (previous && previous !== pKey) {
-      const oldAliases = this.pToI.get(previous)
-      if (oldAliases) {
-        oldAliases.delete(iKey)
-        if (oldAliases.size === 0) this.pToI.delete(previous)
-      }
-      this.rebindSubjectEdges(iKey, previous)
+  private indexWitness(edge: IEdge, index: number): void {
+    if (!isWitnessEdge(edge)) return
+    const x = this.addNode(edge.subject!, 'i').index
+    const p = this.addNode(edge.hintPubkey!, 'p').index
+    let edges = this.witnessIn.get(x)
+    if (!edges) {
+      edges = new Set()
+      this.witnessIn.set(x, edges)
     }
+    edges.add(index)
+    let xs = this.hintedAs.get(p)
+    if (!xs) {
+      xs = new Map()
+      this.hintedAs.set(p, xs)
+    }
+    xs.set(x, (xs.get(x) ?? 0) + 1)
+  }
 
-    const iIndex = this.nodesIndex.get(iKey)
-    const iNode = iIndex !== undefined ? this.nodesList[iIndex] : null
-    const pIndex = this.nodesIndex.get(pKey)
-    const pNode = pIndex !== undefined ? this.nodesList[pIndex] : null
-
-    if (iNode && iNode.type === 'i' && iNode.id === iKey && !pNode) {
-      this.convertIToP(iNode, pKey)
-      return
-    }
-    if (
-      iNode &&
-      iNode.type === 'i' &&
-      iNode.id === iKey &&
-      pNode &&
-      iNode !== pNode
-    ) {
-      this.absorbINodeIntoP(iNode, pNode)
-      return
-    }
-    if (pNode) {
-      this.nodesIndex.set(iKey, pNode.index)
+  private unindexWitness(edge: IEdge, index: number): void {
+    if (!isWitnessEdge(edge)) return
+    const x = this.nodesIndex.get(edge.subject!.toLowerCase())
+    const p = this.nodesIndex.get(edge.hintPubkey!.toLowerCase())
+    if (x === undefined || p === undefined) return
+    const edges = this.witnessIn.get(x)
+    if (edges?.delete(index) && edges.size === 0) this.witnessIn.delete(x)
+    const xs = this.hintedAs.get(p)
+    const count = xs?.get(x)
+    if (!xs || count === undefined) return
+    if (count > 1) xs.set(x, count - 1)
+    else {
+      xs.delete(x)
+      if (xs.size === 0) this.hintedAs.delete(p)
     }
   }
 
@@ -222,6 +381,8 @@ export class Graph implements IGraph {
     const key = trust.addressKey
     const edgeIndex = this.edgesIndex.get(key)
     if (edgeIndex === undefined) return false
+    const edge = this.edgesList[edgeIndex]
+    if (edge) this.unindexWitness(edge, edgeIndex)
     this.unlinkEdge(edgeIndex)
     this.edgesList[edgeIndex] = null
     this.edgesIndex.delete(key)
@@ -339,43 +500,20 @@ export class Graph implements IGraph {
     return this.connections(subjectId, 'in', options)
   }
 
+  /** Nodes are never merged: an X account and a pubkey stay two nodes; the walk binds them (gap G8). */
   addNode(id: string, type: SubjectType): Node {
     const normalized = id.toLowerCase()
-    const mapped = this.iToP.get(normalized)
-    if (mapped) {
-      const pNode = this.addNode(mapped, 'p')
-      this.nodesIndex.set(normalized, pNode.index)
-      return pNode
-    }
     const index = this.nodesIndex.get(normalized)
     if (index !== undefined) {
       const node = this.nodesList[index]
       if (node) return node
     }
-    if (type === 'p') {
-      const iKeys = this.pToI.get(normalized)
-      if (iKeys) {
-        for (const iKey of iKeys) {
-          const iIndex = this.nodesIndex.get(iKey)
-          if (iIndex === undefined) continue
-          const iNode = this.nodesList[iIndex]
-          if (iNode && iNode.type === 'i' && iNode.id === iKey) {
-            return this.convertIToP(iNode, normalized)
-          }
-        }
-      }
-    }
     return this.createNode(normalized, type)
   }
 
   getNode(id: string): Node | null {
-    const normalized = id.toLowerCase()
-    let index = this.nodesIndex.get(normalized)
-    if (index === undefined) {
-      const mapped = this.iToP.get(normalized) // If the node is an domain specific id, map it to a npub
-      if (mapped) index = this.nodesIndex.get(mapped)
-    }
-    if (index === undefined) return null 
+    const index = this.nodesIndex.get(id.toLowerCase())
+    if (index === undefined) return null
     return this.nodesList[index] ?? null
   }
 
@@ -397,6 +535,7 @@ export class Graph implements IGraph {
       const existing = this.edgesList[index]
       if (!existing) return null // Return should never happen
       if (shouldReplaceEdge(existing, trust) === 'ignore') return null
+      this.unindexWitness(existing, index)
       this.edgesList[index] = trust // Overwrite the existing edge with the new one
     } else {
       index = this.edgesList.push(trust) - 1
@@ -405,6 +544,7 @@ export class Graph implements IGraph {
     }
     trust.index = index
     this.addNode(trust.pubkey, 'p').edges.add(index)
+    this.indexWitness(trust, index)
     return index
   }
 
@@ -413,6 +553,7 @@ export class Graph implements IGraph {
     if (index === undefined) return null
     const edge = this.edgesList[index]
     if (!edge) return null
+    this.unindexWitness(edge, index)
     this.unlinkEdge(index)
     this.edgesList[index] = null
     this.edgesIndex.delete(addressKey)
@@ -435,156 +576,11 @@ export class Graph implements IGraph {
     return index
   }
 
-  /** Move edges whose subject is this X id from the previous pubkey onto the new one. */
-  private rebindSubjectEdges(iKey: string, oldPubkey: string): void {
-    const oldIndex = this.nodesIndex.get(oldPubkey)
-    const oldNode = oldIndex !== undefined ? this.nodesList[oldIndex] : null
-    if (!oldNode) {
-      if (this.nodesIndex.get(iKey) !== undefined) this.nodesIndex.delete(iKey)
-      return
-    }
-
-    const edgeIndexes: number[] = []
-    const seen = new Set<number>()
-    for (const peerMaps of [oldNode.inbound, oldNode.outbound]) {
-      for (const peers of peerMaps.values()) {
-        for (const indexes of peers.values()) {
-          for (const edgeIndex of indexes) {
-            if (seen.has(edgeIndex)) continue
-            const edge = this.edgesList[edgeIndex]
-            if (edge?.subject?.toLowerCase() !== iKey) continue
-            seen.add(edgeIndex)
-            edgeIndexes.push(edgeIndex)
-          }
-        }
-      }
-    }
-
-    if (edgeIndexes.length === 0) {
-      if (this.nodesIndex.get(iKey) === oldNode.index) this.nodesIndex.delete(iKey)
-      return
-    }
-
-    const newNode = this.addNode(iKey, 'i')
-    for (const edgeIndex of edgeIndexes) {
-      this.moveReboundEdge(edgeIndex, oldNode, newNode)
-    }
-  }
-
-  private moveReboundEdge(edgeIndex: number, oldNode: Node, newNode: Node): void {
-    const edge = this.edgesList[edgeIndex]
-    if (!edge) return
-    const authorNode = this.getNode(edge.pubkey)
-    if (!authorNode) return
-    const contextIndex = this.getContextIndex(edge.c_tag ?? '', edge.kind as ScoreKind)
-    if (contextIndex === undefined) return
-
-    const outMap = authorNode.outbound.get(contextIndex)
-    if (outMap) {
-      removePeerEdge(outMap, oldNode.index, edgeIndex)
-      if (outMap.size === 0) authorNode.outbound.delete(contextIndex)
-    }
-    const inMap = oldNode.inbound.get(contextIndex)
-    if (inMap) {
-      removePeerEdge(inMap, authorNode.index, edgeIndex)
-      if (inMap.size === 0) oldNode.inbound.delete(contextIndex)
-    }
-    authorNode.addOut(contextIndex, newNode.index, edgeIndex)
-    newNode.addIn(contextIndex, authorNode.index, edgeIndex)
-  }
-
-  private convertIToP(node: Node, pubkey: string): Node {
-    const oldId = node.id
-    this.nodesIndex.delete(oldId)
-    node.id = pubkey.toLowerCase()
-    node.type = 'p'
-    this.nodesIndex.set(node.id, node.index)
-    this.nodesIndex.set(oldId, node.index)
-    return node
-  }
-
-  private absorbINodeIntoP(iNode: Node, pNode: Node): void {
-    this.retargetPeerIndexes(iNode.index, pNode.index)
-    this.nodesIndex.delete(iNode.id)
-    this.nodesIndex.set(iNode.id, pNode.index)
-    this.nodesList[iNode.index] = null
-  }
-
-  private retargetPeerIndexes(fromIndex: number, toIndex: number): void {
-    const fromNode = this.nodesList[fromIndex]
-    if (!fromNode) return
-    for (const [ctxIdx, peers] of fromNode.inbound) {
-      for (const [authorIdx, edgeIndexes] of peers) {
-        const author = this.nodesList[authorIdx]
-        if (!author) continue
-        const outMap = author.outbound.get(ctxIdx)
-        const fromEdges = outMap?.get(fromIndex)
-        if (outMap && fromEdges) {
-          outMap.delete(fromIndex)
-          const toEdges = outMap.get(toIndex) ?? []
-          for (const edgeIdx of fromEdges) {
-            if (!toEdges.includes(edgeIdx)) toEdges.push(edgeIdx)
-          }
-          outMap.set(toIndex, toEdges)
-        }
-        const target = this.nodesList[toIndex]
-        if (!target) continue
-        let targetIn = target.inbound.get(ctxIdx)
-        if (!targetIn) {
-          targetIn = new Map()
-          target.inbound.set(ctxIdx, targetIn)
-        }
-        const existing = targetIn.get(authorIdx) ?? []
-        for (const edgeIdx of edgeIndexes) {
-          if (!existing.includes(edgeIdx)) existing.push(edgeIdx)
-        }
-        targetIn.set(authorIdx, existing)
-      }
-    }
-    for (const [ctxIdx, peers] of fromNode.outbound) {
-      for (const [peerIdx, edgeIndexes] of peers) {
-        const peer = this.nodesList[peerIdx]
-        if (!peer) continue
-        const inMap = peer.inbound.get(ctxIdx)
-        const fromEdges = inMap?.get(fromIndex)
-        if (inMap && fromEdges) {
-          inMap.delete(fromIndex)
-          const toEdges = inMap.get(toIndex) ?? []
-          for (const edgeIdx of fromEdges) {
-            if (!toEdges.includes(edgeIdx)) toEdges.push(edgeIdx)
-          }
-          inMap.set(toIndex, toEdges)
-        }
-        const target = this.nodesList[toIndex]
-        if (!target) continue
-        let targetOut = target.outbound.get(ctxIdx)
-        if (!targetOut) {
-          targetOut = new Map()
-          target.outbound.set(ctxIdx, targetOut)
-        }
-        const existing = targetOut.get(peerIdx) ?? []
-        for (const edgeIdx of edgeIndexes) {
-          if (!existing.includes(edgeIdx)) existing.push(edgeIdx)
-        }
-        targetOut.set(peerIdx, existing)
-      }
-    }
-    fromNode.inbound.clear()
-    fromNode.outbound.clear()
-  }
-
-  private resolvedSubjectId(edge: IEdge): string | undefined {
-    if (!edge.subject) return undefined
-    const mapped = this.iToP.get(edge.subject)
-    return (mapped ?? edge.subject).toLowerCase()
-  }
-
   private unlinkEdge(index: number): void {
     const edge = this.edgesList[index]
     if (!edge) return
     const authorNode = this.getNode(edge.pubkey)
-    const subjectId = this.resolvedSubjectId(edge)
-    const subjectNode = subjectId ? this.getNode(subjectId) : null
+    const subjectNode = edge.subject ? this.getNode(edge.subject) : null
     const contextIndex = this.getContextIndex(edge.c_tag ?? '', edge.kind as ScoreKind)
     if (authorNode && index !== undefined) authorNode.edges.delete(index)
     if (!authorNode || !subjectNode || contextIndex === undefined) return

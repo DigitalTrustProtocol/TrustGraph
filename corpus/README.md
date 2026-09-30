@@ -83,18 +83,25 @@ numbers match within `1e-9`; `null` also matches an absent field.
 
 ### Gaps
 
-A query in a case tagged `gap:Gn` carries `expectModel` (the model rule)
-and `expectCurrent` (today's TypeScript heap) instead of `expect`:
+A `gap:Gn` tag means the gap is **still open** in the TypeScript heap. A
+query in a tagged case carries `expectModel` (the model rule) and
+`expectCurrent` (the TypeScript heap's behaviour) instead of `expect`:
 
-- The TypeScript runner asserts `expectCurrent`, which pins the locked heap.
+- The TypeScript runner asserts `expectCurrent`, which pins the heap.
 - A model-correct runner (the Rust Global Server) asserts `expectModel`. A
   pass there means the implementation has the gap **fixed**; a runner
   should report it that way (for example "105 pass, 1 gap fixed"), not as a
   heap mismatch. Asserting `expect`-style behaviour from the TS heap on a gap
   case is a runner bug.
-- A companion case without the tag pins what holds regardless of the gap
-  (`context-neutral-occupies-its-bucket-connected` beside the G4 case
+- When the heap fixes a gap, its cases drop the tag and `expectCurrent`, and
+  `expectModel` becomes `expect`. Case ids keep their `gap-gN-` prefix so
+  history stays traceable; only the tag says whether a gap is open.
+- A companion case without the tag pins what holds regardless of a gap
+  (`context-neutral-occupies-its-bucket-connected` beside
   `context-neutral-occupies-its-bucket`).
+
+Open today: G5 (`gap-g5-web-subject-case`). G9 is a publish rule and G11 is
+server ingest; neither has a heap case.
 
 See the gap table in [specs/conformance.md](../specs/conformance.md#known-gaps).
 
@@ -102,9 +109,10 @@ See the gap table in [specs/conformance.md](../specs/conformance.md#known-gaps).
 
 `modes: ["lenient", "strict"]` runs the query once per mode (setting
 `input.bindingMode`). An expectation is either one value for both modes or
-`{ "lenient": …, "strict": … }`. Every `bind` case lists both modes. Today's
-TypeScript heap has one behaviour for both modes (gap G8): own evidence binds
-through `Graph.bindIdentity`; witness hints and claims are not used.
+`{ "lenient": …, "strict": … }`. Every `bind` case lists both modes. The
+TypeScript runner feeds `claims` to `Graph.addIdentityClaim`, `ownEvidence`
+to `Graph.bindIdentity(iKey, pubkey, { root, source })`, and the walk
+decides binds per root, level, and mode ([identity-binding.md](../specs/identity-binding.md)).
 
 ### Paging
 
@@ -159,7 +167,7 @@ requirements the runner first sends `["DTP", "$features", "info", {}]`. A
 step whose requirements fail asserts `otherwise` if it has one, else it is
 skipped (`skipped: true` in the outcome). `graph.field` steps expect
 `DTP-ERR unsupported` otherwise; `walk-budgets.json` requires `fixed:G10`
-and is skipped whole by a server whose walk has no budgets.
+and is skipped whole by a server that still lists G10 in `dtp.gaps`.
 
 | Session | Steps | Covers |
 | --- | --- | --- |

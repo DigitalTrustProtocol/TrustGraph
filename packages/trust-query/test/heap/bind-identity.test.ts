@@ -34,7 +34,7 @@ function boundGraph(records: ReturnType<typeof stmt>[]) {
 }
 
 describe('Graph i↔p identity map', () => {
-  it('converts an i-node to a p-node in place (same index)', () => {
+  it('records a bind without merging the i-node into the p-node', () => {
     const graph = new Graph()
     const record = stmt('e1', ROOT, iUser('16224'), 1)
     expect(graph.applyTrustEvent(record)).toBe(true)
@@ -42,13 +42,17 @@ describe('Graph i↔p identity map', () => {
     expect(before?.type).toBe('i')
     const index = before!.index
     graph.bindIdentity('user:id:16224', NEVE_PK)
-    const after = graph.getNode(NEVE_PK)
-    expect(after?.index).toBe(index)
-    expect(after?.type).toBe('p')
-    expect(after?.id).toBe(NEVE_PK)
-    expect(graph.getNode('user:id:16224')?.index).toBe(index)
+    // Binds are decided per walk (G8); the heap keeps X and P as separate nodes.
+    const x = graph.getNode('user:id:16224')
+    const p = graph.getNode(NEVE_PK)
+    expect(x?.index).toBe(index)
+    expect(x?.type).toBe('i')
+    expect(p?.type).toBe('p')
+    expect(p?.index).not.toBe(index)
     expect(graph.iToP.get('user:id:16224')).toBe(NEVE_PK)
     expect(graph.pToI.get(NEVE_PK)?.has('user:id:16224')).toBe(true)
+    expect(graph.unbindIdentity('user:id:16224')).toBe(true)
+    expect(graph.iToP.has('user:id:16224')).toBe(false)
   })
 
   it('walks bound user:id trust as pubkey hops', () => {
@@ -139,11 +143,17 @@ describe('Graph i↔p identity map', () => {
     expect(betaAfter.direct).toMatchObject({ value: -1, eventId: 'root-x-down' })
   })
 
-  it('IndexResolver hops leftover native p +1 even when identity is −1', () => {
+  it('IndexResolver hops a newer native p +1 even when identity is −1', () => {
     const harness = new HeapTrustHarness()
     harness.bindIdentity('user:id:16224', NEVE_PK)
     harness.bindIdentity('user:id:999', ARCHIVE_PK)
-    harness.upsert(stmt('root-neve-p', ROOT, { type: 'p', value: NEVE_PK }, 1))
+    // One statement per peer, by P2 (G2): the newer native p +1 wins.
+    harness.upsert(
+      trustRecord('root-neve-p', ROOT, { type: 'p', value: NEVE_PK }, 1, {
+        context: 'identity',
+        createdAt: 2,
+      }),
+    )
     harness.upsert(stmt('root-neve', ROOT, iUser('16224'), -1))
     harness.upsert(stmt('neve-archive', NEVE_PK, iUser('999'), 1))
     expect(

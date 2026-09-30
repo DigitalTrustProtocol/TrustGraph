@@ -26,16 +26,13 @@ import {
   type RatingQuery,
   type TrustQuery,
 } from '@dtp/trust-query'
-import type { CorpusClaim, CorpusOp, CorpusOwnEvidence, CorpusQuery, CorpusRecord, ModelCase } from './types'
+import type { CorpusClaim, CorpusOp, CorpusQuery, CorpusRecord, ModelCase } from './types'
 
 export type BindingMode = 'lenient' | 'strict'
 
 export interface ModelState {
   graph: Graph
   floors: SlotFloors
-  /** Claims are recorded but unused by today's heap (gap G8). */
-  claims: Map<string, Set<string>>
-  own: CorpusOwnEvidence[]
   graphVersion: number
 }
 
@@ -83,23 +80,20 @@ export function applyOp(state: ModelState, op: CorpusOp): void {
     case 'remove':
       state.graph.removeTrustEvent({ addressKey: op.addressKey } as ITrustEvent)
       break
-    case 'claim': {
-      const set = state.claims.get(op.claim.pubkey) ?? new Set<string>()
-      set.add(op.claim.twitterId)
-      state.claims.set(op.claim.pubkey, set)
+    case 'claim':
+      state.graph.addIdentityClaim(op.claim.pubkey, op.claim.twitterId, op.claim.eventId)
       break
-    }
     case 'unclaim':
-      state.claims.delete(op.pubkey)
+      state.graph.removeIdentityClaims(op.pubkey)
       break
     case 'own':
-      // Today's heap binds globally, for every root (gap G8).
-      state.own.push(op.evidence)
-      state.graph.bindIdentity(op.evidence.iKey, op.evidence.pubkey)
+      state.graph.bindIdentity(op.evidence.iKey, op.evidence.pubkey, {
+        root: op.evidence.root,
+        source: op.evidence.source,
+      })
       break
     case 'unown':
-      // No unbind in today's heap (gap G6); cases using it are tagged gap:G6.
-      state.own = state.own.filter((o) => !(o.root === op.root && o.iKey === op.iKey))
+      state.graph.unbindIdentity(op.iKey, { root: op.root })
       break
     case 'delete': {
       if (op.addressKey) {
@@ -124,8 +118,6 @@ export function buildState(testCase: ModelCase, ops = defaultOps(testCase)): Mod
   const state: ModelState = {
     graph: new Graph(),
     floors: new SlotFloors(),
-    claims: new Map(),
-    own: [],
     graphVersion: 0,
   }
   for (const op of ops) applyOp(state, op)
@@ -177,6 +169,10 @@ export function runTrust(state: ModelState, input: Record<string, unknown>): Rec
     pathView: canonicalPathView(result.pathView),
     followTrustThreshold: result.followTrustThreshold,
     followTrustRed: result.followTrustRed,
+    truncated: result.truncated,
+    truncatedReasons: result.truncatedReasons ?? [],
+    completeDepth: result.completeDepth ?? null,
+    binding: result.binding ?? null,
   }
 }
 
@@ -197,6 +193,10 @@ export function runRating(state: ModelState, input: Record<string, unknown>): Re
     averageScore: result.averageScore,
     claims: sortClaims(result.claims),
     own: result.own ?? null,
+    truncated: result.truncated === true,
+    truncatedReasons: result.truncatedReasons ?? [],
+    completeDepth: result.completeDepth ?? null,
+    binding: result.binding ?? null,
     sourceEventIds: [...result.sourceEventIds].sort(),
     pathView: view,
     ratingEdges: (result.ratingEdges ?? [])

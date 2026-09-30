@@ -12,7 +12,7 @@ import {
   clampFollowTrustThreshold,
 } from './shared/wot-follow-trust-threshold'
 import { cloneLabelHints, TRUST_STATEMENT_KIND } from '@dtp/trust-protocol'
-import { trustEdgeValue } from '@dtp/trust-graph'
+import { trustEdgeValue, USER_ID_PREFIX } from '@dtp/trust-graph'
 import {
   DEFAULT_RESOLVE_BOUNDS,
   normalizeResolveBounds,
@@ -20,12 +20,21 @@ import {
 import { EMPTY_PATH_VIEW, scoresToPathView } from './path-view'
 import { trustScoreCounts } from './score-read'
 import type { Graph } from '@dtp/trust-graph'
-import type { IResolveStrategy } from '@dtp/trust-graph'
+import type {
+  BindingMode,
+  BindOutcome,
+  IResolveStrategy,
+  IResolveStrategyOptions,
+  WalkResult,
+} from '@dtp/trust-graph'
 import { TrustScore, type Score } from '@dtp/trust-graph'
 import type {
+  BindingProvenance,
   ResolvedStatement,
   TrustQuery,
   TrustQueryResult,
+  TrustSubject,
+  WalkQueryOptions,
 } from './types'
 
 export {
@@ -160,7 +169,7 @@ export function executeTrustQuery(
   )
   const band = { red: followTrustRed, green: followTrustThreshold }
 
-  const scores = resolver.resolve(root, subjectId, {
+  const walk = resolver.walk(root, subjectId, {
     graph,
     trustContext: IDENTITY_TRUST_CONTEXT,
     scoreContext: context,
@@ -169,16 +178,22 @@ export function executeTrustQuery(
     followTrustThreshold,
     now,
     kind: TRUST_STATEMENT_KIND,
+    ...walkOptions(query),
   })
+  const scores = walk.scores
+  const extras = walkExtras(walk, query.subject)
 
   if (scores.length === 0) {
-    return emptyResult(
-      query,
-      graphVersion,
-      now,
-      followTrustThreshold,
-      followTrustRed,
-    )
+    return {
+      ...emptyResult(
+        query,
+        graphVersion,
+        now,
+        followTrustThreshold,
+        followTrustRed,
+      ),
+      ...extras,
+    }
   }
 
   const subjectScore =
@@ -241,5 +256,59 @@ export function executeTrustQuery(
     truncated: false,
     followTrustThreshold,
     followTrustRed,
+    ...extras,
   }
+}
+
+/** The query's binding mode and walk budgets as walk options. */
+export function walkOptions(query: WalkQueryOptions): Pick<IResolveStrategyOptions, 'bindingMode' | 'budgets'> {
+  return {
+    ...(query.bindingMode !== undefined ? { bindingMode: query.bindingMode } : {}),
+    ...(query.budgets !== undefined ? { budgets: query.budgets } : {}),
+  }
+}
+
+/** identity-binding.md §8 provenance for a `user:id` subject. */
+export function bindingProvenance(mode: BindingMode, outcome: BindOutcome | undefined): BindingProvenance {
+  const bind = outcome?.bind
+  if (bind) {
+    return {
+      mode,
+      pubkey: bind.pubkey,
+      source: bind.source,
+      confirmed: bind.confirmed,
+      ...(bind.witnessEventId !== undefined ? { witnessEventId: bind.witnessEventId } : {}),
+      ...(bind.witnessLevel !== undefined ? { witnessDegree: bind.witnessLevel + 1 } : {}),
+      ...(bind.claimEventId !== undefined ? { claimEventId: bind.claimEventId } : {}),
+    }
+  }
+  return {
+    mode,
+    source: 'none',
+    confirmed: false,
+    ...(mode === 'strict' && outcome?.cut
+      ? { cutCandidate: outcome.cut.pubkey, cutReason: outcome.cut.reason }
+      : {}),
+  }
+}
+
+/**
+ * Result fields the walk adds: `truncated` / `truncatedReasons` /
+ * `completeDepth` only when a walk budget stopped it (§6.2), and `binding`
+ * for `user:id` subjects.
+ */
+export function walkExtras(
+  walk: WalkResult,
+  subject: TrustSubject,
+): Pick<TrustQueryResult, 'truncatedReasons' | 'completeDepth' | 'binding'> & { truncated?: true } {
+  return {
+    ...(walk.truncated !== undefined
+      ? { truncated: true, truncatedReasons: [walk.truncated], completeDepth: walk.completeDepth }
+      : {}),
+    ...(isUserIdSubject(subject) ? { binding: bindingProvenance(walk.mode, walk.subjectBind) } : {}),
+  }
+}
+
+function isUserIdSubject(subject: TrustSubject): boolean {
+  return subject.type === 'i' && subject.value.toLowerCase().startsWith(USER_ID_PREFIX)
 }

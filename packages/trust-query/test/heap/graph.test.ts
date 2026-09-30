@@ -371,9 +371,11 @@ describe('replacement updates and rebuilds', () => {
     expect(
       graph.upsert(statement('z-neutral', root, target, 0, { createdAt: 11 })),
     ).toBe(true)
+    // A Neutral-only result is disconnected and carries no direct (D4 option A).
+    expect(graph.graph.edgesList.some((edge) => edge?.id === 'z-neutral')).toBe(true)
     expect(
       graph.query({ rootPubkey: root, subject: target, now: 11 }).direct,
-    ).toMatchObject({ eventId: 'z-neutral', value: 0 })
+    ).toBeUndefined()
 
     expect(
       graph.upsert(
@@ -560,16 +562,12 @@ describe('neighborhood', () => {
       subject: pubkey(bob),
       now: 10,
     })
+    // The Neutral stays in the heap; a disconnected result shows none (D4 option A).
+    const aliceBob = graph.graph.edgesList.find((edge) => edge?.id === 'alice-bob')
+    expect(aliceBob?.nValue).toBe(0)
+    expect(aliceBob?.content).toBe('Neither endorsed nor opposed.')
     expect(hop.connected).toBe(false)
-    expect(hop.statements.some((stmt) => stmt.eventId === 'alice-bob')).toBe(
-      true,
-    )
-    expect(hop.statements.find((stmt) => stmt.eventId === 'alice-bob')?.value).toBe(
-      0,
-    )
-    expect(
-      hop.statements.find((stmt) => stmt.eventId === 'alice-bob')?.content,
-    ).toBe('Neither endorsed nor opposed.')
+    expect(hop.statements).toEqual([])
 
     const ofTarget = graph.query({
       rootPubkey: root,
@@ -577,15 +575,10 @@ describe('neighborhood', () => {
       now: 10,
       format: 'path',
     })
+    expect(ofTarget.connected).toBe(false)
     expect(ofTarget.resolution).toBe('none')
     expect(ofTarget.trust).toBe(0)
-    expect(
-      ofTarget.statements.some((stmt) => stmt.eventId === 'alice-target'),
-    ).toBe(true)
-    expect(
-      ofTarget.statements.find((stmt) => stmt.eventId === 'alice-target')
-        ?.content,
-    ).toBeUndefined()
+    expect(ofTarget.statements).toEqual([])
   })
 
   it('carries label tokens and display hints without changing scores', () => {
@@ -626,9 +619,9 @@ describe('neighborhood', () => {
 
     expect(result.connected).toBe(false)
     expect(result.degree).toBe(0)
-    expect(result.neutral).toBeGreaterThan(0)
+    expect(result.neutral ?? 0).toBe(0)
     expect(result.trust).toBe(0)
-    expect(result.statements.map((row) => row.eventId)).toContain('root-alice')
+    expect(result.statements).toEqual([])
   })
 
   it('does not connect on a closer Neutral, so a farther Trust wins', () => {
@@ -697,11 +690,8 @@ describe('neighborhood', () => {
       format: 'path',
     })
 
-    expect(result.direct).toMatchObject({
-      eventId: 'neutral',
-      value: 0,
-      content: 'Watching this purpose.',
-    })
+    expect(result.connected).toBe(false)
+    expect(result.direct).toBeUndefined()
     expect(result.resolution).toBe('none')
     expect(result.trust).toBe(0)
   })

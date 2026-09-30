@@ -113,21 +113,23 @@ Both runners execute these over every model case and over generated graphs:
 | Counts = items | `lookup.counts` equals the per-value tally of the unpaged `lookup.incoming` / `lookup.outgoing` with the same filters |
 | Field = walk (Rust) | The root-field fast path equals the exact walk ([GlobalServer resolver-engine.md](../../GlobalServer/specs/resolver-engine.md)) |
 
-Cases that trigger a known gap are tagged `gap:Gn` and carry two
-expectations per query:
+A `gap:Gn` tag marks a case whose gap is **still open** in the
+`@dtp/trust-graph` heap. A tagged case carries two expectations per query:
 
 - `expectModel` is what this spec requires. A runner for a model-correct
   implementation (the Rust runner) asserts it, and reports the case as
   **gap fixed** rather than as a failure of the heap.
-- `expectCurrent` is what the vendored TypeScript heap does today. The
-  TypeScript runner asserts it, so the locked heap stays pinned: a change in
-  its behaviour fails the case until the owner updates the gap.
+- `expectCurrent` is what the TypeScript heap does today. The TypeScript
+  runner asserts it, so the heap stays pinned: a change in its behaviour
+  fails the case until the owner updates the gap.
 - A runner never asserts `expect` on a gap case (the lint forbids `expect`
   beside `expectModel`). When a gap is fixed in the heap, its cases drop the
-  tag and `expectCurrent`, and `expectModel` becomes `expect`.
+  tag and `expectCurrent`, and `expectModel` becomes `expect`. Case ids
+  (`gap-g1-…`) are kept for traceability; the tag alone says a gap is open.
 - Where the gap setup hides a rule that holds anyway, a **companion case**
   without the tag pins that rule for both runners (for example
-  `context-neutral-occupies-its-bucket-connected` next to the G4 case).
+  `context-neutral-occupies-its-bucket-connected` next to
+  `context-neutral-occupies-its-bucket`).
 
 Generators and order-independence properties skip gap cases until the gaps
 are closed.
@@ -212,16 +214,27 @@ expose exactly the same API ([resolver-api.md](resolver-api.md)):
 
 ## Known gaps
 
-Differences between the current extension heap and this model. Items in
-`src/graph/trust` are locked: each fix needs explicit approval from the
-package owner and lands with corpus cases.
+Differences between the extension heap (AttentionX `src/graph/trust`, locked)
+and this model. Decision D3 allowed fixing them in the `@dtp/trust-graph`
+package only; the package records each divergence from the AttentionX origin
+in `packages/trust-graph/DIVERGENCE.json`. The AttentionX copy keeps every
+gap until the extension shim (TG-8) adopts the package.
 
-| ID | Where (AttentionX) | Current behaviour | Model rule (proposed) | Product impact today |
+| ID | Status in `@dtp/trust-graph` |
+| --- | --- |
+| G1, G2, G3, G4, G6, G7, G8, G10, G12 | **Fixed.** Their corpus cases assert `expect` |
+| G5 | Open (`gap:G5`). Needs a protocol-layer key normalization, not a heap change |
+| G9 | Open. A publish rule in the extension backend, outside the heap |
+| G11 | Handled by the servers' ingest (PersonalServer applies kind `5`); not a heap concern |
+
+The table keeps the original description of each gap in the AttentionX heap.
+
+| ID | Where (AttentionX) | Behaviour there | Model rule | Product impact in the extension |
 | --- | --- | --- | --- | --- |
 | G1 | `Graph.getContextIndexes`, used by `IndexResolver` for `32014` | Non-empty `c` on a rating query falls back to parent and global buckets | Exact `c` only (NIP-32014) | None — product rating queries use `c = ""` |
 | G2 | `Node` peer lists; `IndexResolver.buildIncomingEdges` and expansion | When one author has several active records to one node in one bucket (empty-scope + `x.com` slots, or `p:<hex>` + bound `user:id`), the first inserted wins; the winner can change after a worker restart | `scopeRank` desc, `created_at` desc, `id` asc (P2) | Rare |
 | G3 | `Graph.applyTrustEvent` → `Node.removeOut` / `removeIn` | A Delete unlinks **every** same-kind record from that author to that node in the bucket with `created_at ≤` the Delete, not only its own slot; at load the outcome depends on iteration order | A Delete affects its own slot only | Rare (same setup as G2) |
-| G4 | `IndexResolver` final degree | A disconnected result may carry Neutral statements (and a Neutral `direct`) from the last examined degree, and can count one twice when the subject is also a peer | Disconnected ⇒ no statements, `neutral = 0`, no `direct` ([wot-model.md §6.1](wot-model.md#61-disconnected-results); option A of the open decision D4, the alternative being to report the nearest Neutral-only degree) | Cosmetic: the extension shows the root's own Neutral on a disconnected result |
+| G4 | `IndexResolver` final degree | A disconnected result may carry Neutral statements (and a Neutral `direct`) from the last examined degree, and can count one twice when the subject is also a peer | Disconnected ⇒ no statements, `neutral = 0`, no `direct` ([wot-model.md §6.1](wot-model.md#61-disconnected-results); option A of decision D4) | Cosmetic: the extension shows the root's own Neutral on a disconnected result |
 | G5 | `Graph.addNode` / `getNode` | Every node key is lowercased, so `web:` URLs that differ only in path case collide | Lowercase only case-insensitive parts, at the protocol layer | None for X |
 | G6 | `Graph` | No unbind; removing a bind needs a full reload | Add `unbindIdentity(iKey)` | Servers need live unbind |
 | G7 | `IndexResolver` subject score | For `32009` the subject's hit counters and peer counters share one object; with `SC ≠ TC` hop statements can leak into evidence. The subject is never expanded for `32009` but is for `32014` | Keep counters separate; keep the expansion asymmetry, documented | None — product uses `SC = TC` for trust |
@@ -232,12 +245,9 @@ package owner and lands with corpus cases.
 | G10 | `IndexResolver.resolve` | No time, node, or record budget: a walk runs to `maxDepth` or exhaustion, and a synchronous JavaScript walk cannot be interrupted from outside | Budgets checked inside the walk with the level-boundary rules of [wot-model.md §6.2](wot-model.md#62-guardrails); result reports `completeDepth` and the reason | The Personal Server cannot enforce its time guardrail until this lands |
 | P3 | `src/graph/query.ts` (not locked) | Trust statements in walk order | Canonical order (§7.1) | None |
 
-Recommended order: fix G2 and G3 together while extracting the package (they
-are the only order-dependent behaviours), then G10 (servers need it before
-they go live), then G9 (a publish rule outside the locked folder), then G8
-with G6 (binding inside the walk replaces `bindIdentity`-only binding), then
-G1, then G4 once decision D4 is taken.
+The package fixed them in the order G2, G3, G1, G4, G6, G8, G10, G12, G7.
+What remains: G9 (a publish rule outside the heap, for the extension) and G5
+(protocol-layer key normalization).
 
-Budget cases in the corpus (`gap-g10-*` until G10 lands, then
-`model/budget-*`) use node and record budgets only, never time, so both
-runners get identical `completeDepth` and results.
+Budget cases in the corpus (`gap-g10-*`) use node and record budgets only,
+never time, so both runners get identical `completeDepth` and results.

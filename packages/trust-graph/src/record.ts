@@ -32,8 +32,8 @@ export interface TrustEdgeRecord {
   expire?: number
   labels?: string[]
   labelHints?: Record<string, string>
-  /** Scope profile rank (x.com: 2 for `s=x.com`, 1 for empty scope). Not read by the heap. */
+  /** Scope profile rank (x.com: 2 for `s=x.com`, 1 for empty scope). P2 tie-break in the walk (G2); absent = 0. */
   scopeRank?: number
-  /** First bare npub hint on a `user:id` subject with `s=x.com`, as hex. Not read by the heap. */
+  /** First bare npub hint on a `user:id` subject with `s=x.com`, as hex. Identity witness (G8). */
   hintPubkey?: string
 }

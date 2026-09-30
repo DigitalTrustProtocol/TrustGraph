@@ -80,8 +80,7 @@ function limitPathView(
 function addReason(target: WireResultExtras, reason: TruncationReason): void {
   target.truncated = true
   const reasons = target.truncatedReasons ?? []
-  if (!reasons.includes(reason)) reasons.push(reason)
-  target.truncatedReasons = reasons
+  if (!reasons.includes(reason)) target.truncatedReasons = [...reasons, reason]
 }
 
 /** Canonical order, then cut statements and path nodes; counts stay exact. */

@@ -59,9 +59,9 @@
     {
       "id": "context-neutral-occupies-its-bucket",
       "model": "dtp-wot/1",
-      "tags": ["context", "neutral", "gap:G4"],
+      "tags": ["context", "neutral"],
       "profile": "x.com",
-      "description": "The root's Neutral in security:audit hides its general trust (the Neutral occupies the nearer bucket), so nothing is counted and the walk ends disconnected. Model (wot-model 6.1): no statements, no direct. Today the Neutral leaks into the disconnected result as statement and direct.",
+      "description": "The root's Neutral in security:audit hides its general trust (the Neutral occupies the nearer bucket), so nothing is counted and the walk ends disconnected. wot-model 6.1 (D4 option A): no statements, no direct (fixed gap G4).",
       "records": [
         { "id": "@c-general", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 1 },
         { "id": "@c-neutral", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "context": "security:audit", "value": 0, "content": "Watching this purpose." }
@@ -70,12 +70,7 @@
         {
           "type": "trust",
           "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "security:audit", "now": 10 },
-          "expectModel": { "connected": false, "degree": 0, "resolution": "none", "trust": 0, "neutral": 0, "statements": [], "direct": null },
-          "expectCurrent": {
-            "connected": false, "degree": 0, "resolution": "none", "trust": 0, "neutral": 1,
-            "statements": [{ "eventId": "@c-neutral", "value": 0 }],
-            "direct": { "eventId": "@c-neutral", "value": 0, "content": "Watching this purpose." }
-          }
+          "expect": { "connected": false, "degree": 0, "resolution": "none", "trust": 0, "neutral": 0, "statements": [], "direct": null }
         }
       ]
     },

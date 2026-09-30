@@ -5,7 +5,7 @@
       "model": "dtp-wot/1",
       "tags": ["bind", "own-evidence"],
       "profile": "x.com",
-      "description": "identity-binding.md §5 situation 1: own Bio shows P; P claims X. Bound in both modes; today's bindIdentity agrees.",
+      "description": "identity-binding.md §5 situation 1: own Bio shows P; P claims X. Bound in both modes.",
       "records": [
         { "id": "@b1-r-x", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2 },
         { "id": "@b1-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 }
@@ -23,9 +23,9 @@
     {
       "id": "bind-02-own-bio-unclaimed",
       "model": "dtp-wot/1",
-      "tags": ["bind", "own-evidence", "gap:G8"],
+      "tags": ["bind", "own-evidence"],
       "profile": "x.com",
-      "description": "Situation 2: own Bio shows P; P has no 10011. Strict leaves X unbound; today's heap binds regardless of mode.",
+      "description": "Situation 2: own Bio shows P; P has no 10011. Lenient binds P; strict leaves X unbound.",
       "records": [
         { "id": "@b2-r-x", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2 },
         { "id": "@b2-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 }
@@ -35,15 +35,14 @@
         {
           "type": "trust", "modes": ["lenient", "strict"],
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
-          "expectModel": { "lenient": { "connected": true, "degree": 2 }, "strict": { "connected": false, "degree": 0 } },
-          "expectCurrent": { "connected": true, "degree": 2 }
+          "expect": { "lenient": { "connected": true, "degree": 2 }, "strict": { "connected": false, "degree": 0 } }
         }
       ]
     },
     {
       "id": "bind-03-own-bio-beats-friend-hint",
       "model": "dtp-wot/1",
-      "tags": ["bind", "own-evidence", "witness", "gap:G8"],
+      "tags": ["bind", "own-evidence", "witness"],
       "profile": "x.com",
       "description": "Situation 3: own Bio shows P (no claim); a friend's hint says Q and Q claims X. Lenient binds P; strict is unbound (the Bio outranks hints, P is unconfirmed).",
       "records": [
@@ -59,23 +58,21 @@
         {
           "type": "trust", "modes": ["lenient", "strict"],
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
-          "expectModel": { "lenient": { "connected": true, "degree": 2 }, "strict": { "connected": false } },
-          "expectCurrent": { "connected": true, "degree": 2 }
+          "expect": { "lenient": { "connected": true, "degree": 2 }, "strict": { "connected": false } }
         },
         {
           "type": "trust", "modes": ["lenient", "strict"],
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target2" }, "context": "identity", "now": 100 },
-          "expectModel": { "connected": false },
-          "expectCurrent": { "connected": false }
+          "expect": { "connected": false }
         }
       ]
     },
     {
       "id": "bind-04-own-hint-claimed",
       "model": "dtp-wot/1",
-      "tags": ["bind", "witness", "gap:G8"],
+      "tags": ["bind", "witness"],
       "profile": "x.com",
-      "description": "Situation 4: the root's own 32009 hint says P; P claims X. Bound in both modes. Today's heap ignores hints, so X stays terminal.",
+      "description": "Situation 4: the root's own 32009 hint says P; P claims X. Bound in both modes.",
       "records": [
         { "id": "@b4-r-x", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2, "hintPubkey": "@p" },
         { "id": "@b4-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 }
@@ -85,15 +82,14 @@
         {
           "type": "trust", "modes": ["lenient", "strict"],
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
-          "expectModel": { "connected": true, "degree": 2 },
-          "expectCurrent": { "connected": false, "degree": 0 }
+          "expect": { "connected": true, "degree": 2 }
         }
       ]
     },
     {
       "id": "bind-05-own-hint-unclaimed",
       "model": "dtp-wot/1",
-      "tags": ["bind", "witness", "gap:G8"],
+      "tags": ["bind", "witness"],
       "profile": "x.com",
       "description": "Situation 5: own hint says P; P has no 10011.",
       "records": [
@@ -104,15 +100,14 @@
         {
           "type": "trust", "modes": ["lenient", "strict"],
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
-          "expectModel": { "lenient": { "connected": true, "degree": 2 }, "strict": { "connected": false } },
-          "expectCurrent": { "connected": false }
+          "expect": { "lenient": { "connected": true, "degree": 2 }, "strict": { "connected": false } }
         }
       ]
     },
     {
       "id": "bind-06-wot-witness-claimed",
       "model": "dtp-wot/1",
-      "tags": ["bind", "witness", "gap:G8"],
+      "tags": ["bind", "witness"],
       "profile": "x.com",
       "description": "Situation 6: the nearest WoT witness (Carol, level 1) says P; P claims X. Carol's statement is both witness and hop: X = P at level 2, target at degree 3.",
       "records": [
@@ -125,22 +120,20 @@
         {
           "type": "trust", "modes": ["lenient", "strict"],
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
-          "expectModel": { "connected": true, "degree": 3 },
-          "expectCurrent": { "connected": false }
+          "expect": { "connected": true, "degree": 3 }
         },
         {
           "type": "trust", "modes": ["lenient", "strict"],
           "note": "Querying the X account: evidence addressed to user:id:1001 at degree 2.",
           "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:1001" }, "context": "identity", "now": 100 },
-          "expectModel": { "connected": true, "degree": 2, "trust": 1 },
-          "expectCurrent": { "connected": true, "degree": 2, "trust": 1 }
+          "expect": { "connected": true, "degree": 2, "trust": 1 }
         }
       ]
     },
     {
       "id": "bind-07-strict-skips-false-nearer-hint",
       "model": "dtp-wot/1",
-      "tags": ["bind", "witness", "gap:G8"],
+      "tags": ["bind", "witness"],
       "profile": "x.com",
       "description": "Situation 7: the nearest witness (Carol, level 1) says P without a claim; a farther witness (Erin, level 2) says Q, and Q claims X. Lenient binds P; strict binds Q.",
       "records": [
@@ -156,21 +149,19 @@
         {
           "type": "trust", "modes": ["lenient", "strict"],
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
-          "expectModel": { "lenient": { "connected": true, "degree": 3 }, "strict": { "connected": false } },
-          "expectCurrent": { "connected": false }
+          "expect": { "lenient": { "connected": true, "degree": 3 }, "strict": { "connected": false } }
         },
         {
           "type": "trust", "modes": ["lenient", "strict"],
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target2" }, "context": "identity", "now": 100 },
-          "expectModel": { "lenient": { "connected": false }, "strict": { "connected": true, "degree": 4 } },
-          "expectCurrent": { "connected": false }
+          "expect": { "lenient": { "connected": false }, "strict": { "connected": true, "degree": 4 } }
         }
       ]
     },
     {
       "id": "bind-09-false-hint",
       "model": "dtp-wot/1",
-      "tags": ["bind", "witness", "gap:G8"],
+      "tags": ["bind", "witness"],
       "profile": "x.com",
       "description": "Situation 9: the witness says P, but P's 10011 names a different X account.",
       "records": [
@@ -183,8 +174,7 @@
         {
           "type": "trust", "modes": ["lenient", "strict"],
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
-          "expectModel": { "lenient": { "connected": true, "degree": 3 }, "strict": { "connected": false } },
-          "expectCurrent": { "connected": false }
+          "expect": { "lenient": { "connected": true, "degree": 3 }, "strict": { "connected": false } }
         }
       ]
     },
@@ -193,7 +183,7 @@
       "model": "dtp-wot/1",
       "tags": ["bind", "witness"],
       "profile": "x.com",
-      "description": "Situation 10: only an author outside the root's web of trust hints P. Unbound in both modes (and today).",
+      "description": "Situation 10: only an author outside the root's web of trust hints P. Unbound in both modes.",
       "records": [
         { "id": "@b10-r-x", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2 },
         { "id": "@b10-stranger-x", "pubkey": "@stranger", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2, "hintPubkey": "@p" },
@@ -251,7 +241,7 @@
     {
       "id": "bind-13-unwitnessed-claimant-never-candidate",
       "model": "dtp-wot/1",
-      "tags": ["bind", "witness", "gap:G8"],
+      "tags": ["bind", "witness"],
       "profile": "x.com",
       "description": "Situation 13: the witness says P; Q also claims X but nobody witnessed Q. Lenient binds P; strict: P has no claim, so unbound. Q is never a candidate.",
       "records": [
@@ -265,8 +255,7 @@
         {
           "type": "trust", "modes": ["lenient", "strict"],
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
-          "expectModel": { "lenient": { "connected": true, "degree": 3 }, "strict": { "connected": false } },
-          "expectCurrent": { "connected": false }
+          "expect": { "lenient": { "connected": true, "degree": 3 }, "strict": { "connected": false } }
         },
         {
           "type": "trust", "modes": ["lenient", "strict"],

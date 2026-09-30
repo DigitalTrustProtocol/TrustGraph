@@ -17,7 +17,8 @@ export {
   type NeighborhoodResult,
   type NeighborhoodValueFilter,
 } from './graph'
-export { executeTrustQuery } from './query'
+export { bindingProvenance, executeTrustQuery, walkExtras, walkOptions } from './query'
+export { executeFieldQuery, type FieldQuery, type FieldQueryResult } from './field'
 export {
   MAX_OUTGOING_TRUST_STATEMENTS,
   isOutgoingUserStatement,
@@ -34,6 +35,7 @@ export {
 } from './incoming'
 export type {
   ActiveTrustValue,
+  BindingProvenance,
   ContextMatch,
   GraphBounds,
   GraphPathView,
@@ -52,6 +54,7 @@ export type {
   TrustResolution,
   TrustSubject,
   TrustValue,
+  WalkQueryOptions,
 } from './types'
 export { EMPTY_PATH_VIEW, scoresToPathView, unionPathViews, viewNodeFromHeap } from './path-view'
 export { resolutionFromCounts } from './types'
@@ -79,10 +82,16 @@ export {
   Score,
   TrustScore,
   indexResolver,
+  type BindingMode,
+  type FieldBind,
+  type FieldResult,
   type IResolveStrategy,
   type IResolveStrategyOptions,
   type ResolveFormat,
   type ScoreKind,
+  type WalkBudgets,
+  type WalkResult,
+  type WalkTruncation,
 } from '@dtp/trust-graph'
 export * from './lookups'
 export * from './frontier'

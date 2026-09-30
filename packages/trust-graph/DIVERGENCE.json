@@ -68,7 +68,23 @@
   },
   "diverged": {
     "Graph.ts": [
-      "G3"
+      "G3",
+      "G6",
+      "G8"
+    ],
+    "IResolveStrategy.ts": [
+      "G8",
+      "G10",
+      "G12"
+    ],
+    "IndexResolver.ts": [
+      "G1",
+      "G2",
+      "G4",
+      "G7",
+      "G8",
+      "G10",
+      "G12"
     ],
     "Node.ts": [
       "G3"

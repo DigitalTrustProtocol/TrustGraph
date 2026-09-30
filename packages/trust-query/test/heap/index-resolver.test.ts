@@ -84,7 +84,8 @@ function resolve(
     kind: scoreKind,
     maxDepth: WOT_MAX_DEGREE_DEFAULT,
     trustContext: 'identity',
-    scoreContext: 'identity',
+    // 32014 matches its exact context only (G1); product ratings are empty-c.
+    scoreContext: scoreKind === RATING_STATEMENT_KIND ? '' : 'identity',
   })
   const hit = scores.find((row) => row.subject === subjectId) ?? scores[0]
   if (!hit) throw new Error(`IndexResolver returned no score for ${subjectId}`)
