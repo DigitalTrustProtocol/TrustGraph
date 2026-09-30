@@ -164,8 +164,8 @@ are matched only by steps that expect one; other pushes are dropped.
 `dtp.capabilities`) or `fixed:Gn` (the server must not list `Gn` in
 `dtp.gaps`; an absent `gaps` means none open). When a session or step has
 requirements the runner first sends `["DTP", "$features", "info", {}]`. A
-step whose requirements fail asserts `otherwise` if it has one, else it is
-skipped (`skipped: true` in the outcome). `graph.field` steps expect
+step whose requirements fail asserts `otherwise` if it has one (`otherwise: true`
+in the outcome), else it is skipped (`skipped: true`). `graph.field` steps expect
 `DTP-ERR unsupported` otherwise; `walk-budgets.json` requires `fixed:G10`
 and is skipped whole by a server that still lists G10 in `dtp.gaps`.
 

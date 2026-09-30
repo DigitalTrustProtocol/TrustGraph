@@ -90,7 +90,7 @@ describe('runSession', () => {
     })
     const outcomes = await runSession('ws://fake', gated, { WebSocket, timeoutMs: 500 })
     expect(outcomes).toEqual([
-      { step: 0, errors: [] },
+      { step: 0, otherwise: true, errors: [] },
       { step: 1, skipped: true, errors: [] },
       { step: 2, errors: [] },
     ])
