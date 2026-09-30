@@ -275,13 +275,7 @@ not the answer. This also holds when the root's own statement is a Neutral
 that occupies its context bucket (it hides the root's broader statements, §4.3,
 but is not evidence by itself).
 
-This is option A of the open decision D4 (§9); option B would report the
-nearest Neutral-only degree instead. Implementations follow option A until
-D4 is decided.
-
-Gap G4: the TypeScript heap leaks the Neutral statements of the last examined
-degree into a disconnected result (as `statements`, `neutral`, and `direct`).
-Corpus cases for this carry `gap:G4` ([conformance.md](conformance.md#known-gaps)).
+This is option A of decision D4 (§9, decided).
 
 A disconnected result about `user:id:X` reports the bind at the deepest level
 the walk examined, `bind(R, X, ℓ*)`, where `ℓ*` is the level of the last hit
@@ -492,21 +486,27 @@ npubs are also queued for a `10011` fetch, which strict mode needs.
 | Artifact rating | 32014 | `identity` | `""` | 1 | Tone uses the same band |
 
 - Default `D` = 4; allowed 1–7.
-- Binding mode: `lenient` by default (closest to today's extension); `strict`
-  selectable. The default is decision D5.
+- Binding mode: `lenient` by default on every runtime (decision D5);
+  `strict` selectable per query.
 - Publish contexts: person trust `c=identity`; post trust and ratings omit `c`.
   Witness-only statements by verifier services use `c=identity:attest`.
 - Npub hints are published only from own evidence or confirmed binds
   ([identity-binding.md §9](identity-binding.md#9-publishing-rule)).
 - Question actions are local-only and never reach the model.
 
+**Decided product decisions** (by the owner, 2026-10-01).
+
+| ID | Question | Decision |
+| --- | --- | --- |
+| D3 | May the locked heap change to close the model gaps? | Yes, for the TypeScript library `@dtp/trust-graph` only. AttentionX `src/graph/trust` is not updated by that change; the library records each divergence from the AttentionX origin commit |
+| D4 | What a disconnected result says about Neutral evidence | **Option A**: nothing. No statements, `neutral = 0`, no `direct` (§6.1). Option B (report the nearest Neutral-only degree, still `connected = false`) was rejected. Closes gap G4 |
+| D5 | Default binding mode | **`lenient` on every runtime** (extension, Personal Server, Global Server). `strict` is available whenever the caller asks for it (`bindingMode` per query or in the session defaults) |
+
 **Open product decisions.** These are the owner's to take; the spec states
 the options and what v1 does meanwhile.
 
 | ID | Question | Option A | Option B | v1 meanwhile |
 | --- | --- | --- | --- | --- |
-| D4 | What a disconnected result says about Neutral evidence | Nothing: no statements, `neutral = 0`, no `direct` (§6.1) | Report the nearest Neutral-only degree as evidence, still `connected = false` (the UI can show "your network is watching this") | Option A is the model rule and the corpus `expectModel`; the heap's leak is gap G4 |
-| D5 | Default binding mode | `lenient` everywhere (closest to the extension today; a wrong nearest witness misleads the people who trust it) | `strict` on servers (no hop through an X account without a `10011`), `lenient` in the extension | `lenient` everywhere; `bindingMode` is set per query |
 | D6 | Context for witness-only statements by verifier services | `identity:attest`: not in `Chain(32009, identity)`, so the statement witnesses a bind (witnesses accept any `c`) without being a hop or trust evidence ([identity-binding.md §2](identity-binding.md#2-witness-statements)) | No separate context: verifiers publish `c=identity` like everyone else, so their witness is also a trust hop and trust evidence | `identity:attest` as written in identity-binding.md §2; nothing publishes it yet |
 
 ## 10. Constants and limits

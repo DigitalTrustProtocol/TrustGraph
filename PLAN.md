@@ -40,12 +40,17 @@ Acceptance: `npm run check` green on an empty package set.
       unread by the heap), `src/constants.ts`, `src/threshold.ts`
       (`meetsFollowTrustGreen` + its two helpers, unchanged), `src/main.ts`
       package entry (the vendored `index.ts` barrel stays byte-identical).
-- [x] `VENDORED.json` records the AttentionX commit, the ten rewrites, and
-      the SHA-256 of every vendored file; `test/vendored.test.ts` fails on
-      any edit. `npm run vendor:check` re-derives the files from AttentionX.
+- [x] ~~`VENDORED.json` byte lock~~ — replaced after decision D3 by the
+      divergence record `packages/trust-graph/DIVERGENCE.json`: the AttentionX
+      origin commit (`ccd7c46`), the ten import rewrites, the origin SHA-256 of
+      every file, and each diverged file with the gap ids that forced the edit.
+      `test/divergence.test.ts` keeps unlisted files byte-identical to the
+      origin; `npm run divergence:check` re-derives the origin bytes from
+      AttentionX (read-only, never writes).
 - [x] No behaviour change, no gap fix (G1–G12 untouched), no second walk.
 
 Acceptance: vendored bytes match; the ported extension tests pass (TG-3).
+(TG-9 later diverged the files listed in `DIVERGENCE.json`.)
 
 ### TG-2 `@dtp/trust-protocol` ✅
 
@@ -244,11 +249,16 @@ generators, and more sessions.
 
 | ID | Blocks |
 | --- | --- |
-| D3 | Every gap fix in `@dtp/trust-graph`; in particular **G10** (walk budgets: time / node / record, `completeDepth`) and **G12** (level structure → `graph.field`). Without them the Personal Server cannot offer `graph.field` or in-walk guardrails, so the session suite cannot pass on both servers. Also G8 (binding inside the walk): servers have no binding at all today |
 | D1 | Final home of the library (this repo vs upstream `DigitalTrustProtocol/Trust`) |
-| D4 | G4 disconnected-result rule. Options in wot-model.md §9; v1 uses option A (no statements) |
-| D5 | Default binding mode per runtime. Options in wot-model.md §9; v1 uses `lenient` |
 | D6 | Name of the witness-only context. Options in wot-model.md §9; `identity:attest` written, unused |
+
+Decided by the owner (2026-10-01), recorded in wot-model.md §9:
+
+| ID | Decision |
+| --- | --- |
+| D3 | Approved for the TypeScript package `@dtp/trust-graph` only. AttentionX `src/graph/trust` is not updated in this pass (TG-8 stays out of scope); the byte lock became a divergence record |
+| D4 | Option A: a disconnected result has no statements, `neutral = 0`, and no `direct` (wot-model §6.1). Closes G4 |
+| D5 | Default binding mode `lenient` on every runtime; `strict` when the caller asks for it |
 
 ## Protocol error codes: Personal Server vs Global Server
 

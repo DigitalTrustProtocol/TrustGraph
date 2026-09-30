@@ -23,7 +23,7 @@
     "test": "vitest run",
     "build": "npm run build --workspaces --if-present",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
-    "vendor:check": "node scripts/vendor-trust-graph.mjs --check"
+    "divergence:check": "node scripts/trust-graph-divergence.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",

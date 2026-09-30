@@ -1,7 +1,7 @@
 {
   "name": "@dtp/trust-graph",
   "version": "0.1.0",
-  "description": "Locked WoT heap: Graph, Node, Edge, IndexResolver, Score (vendored from DigitalTrustProtocol/Trust via AttentionX)",
+  "description": "WoT heap: Graph, Node, Edge, IndexResolver, Score (from DigitalTrustProtocol/Trust via AttentionX; divergences in DIVERGENCE.json)",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -25,6 +25,6 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build": "tsc -p tsconfig.json && node ../../scripts/fix-esm-extensions.mjs dist",
-    "vendor:check": "node ../../scripts/vendor-trust-graph.mjs --check"
+    "divergence:check": "node ../../scripts/trust-graph-divergence.mjs"
   }
 }

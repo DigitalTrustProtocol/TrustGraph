@@ -1,6 +1,7 @@
 {
-  "source": "AttentionX/src/graph/trust",
-  "sourceCommit": "ccd7c462240f71bf0afc9c8408a4f7f8b5aebc2f",
+  "origin": "AttentionX/src/graph/trust",
+  "originCommit": "ccd7c462240f71bf0afc9c8408a4f7f8b5aebc2f",
+  "decision": "D3 (2026-10-01): the library may diverge from the AttentionX origin to close model gaps; AttentionX src/graph/trust is not updated. Files not listed under diverged stay byte-identical to the origin (plus the import rewrites).",
   "rewrites": [
     {
       "file": "Graph.ts",
@@ -53,7 +54,7 @@
       "to": "import type { TrustEdgeRecord as EventRecord } from './record'"
     }
   ],
-  "sha256": {
+  "originSha256": {
     "Edge.ts": "a75d3b2d25559ec3607b9bea3ccaf76a0941db33b4e5e4fc7fbf2df168ec1127",
     "Graph.ts": "118c3ca3c6c42b62bfdb66182e0778a4f305c2d4a2739b7cf5aeef21b99764d9",
     "IResolveStrategy.ts": "2ca8bb97b9008692605ec1698fa2eaf2984aaaf80506f236876e5e94b89dcb7d",
@@ -64,5 +65,12 @@
     "pathStrategyJson.ts": "c0ef02ebea1ad57de4d8e07f460da50f6165c2dac6f2efb7bc0be3d24114dd0b",
     "types.ts": "0fa90fc965fbf0ac885db332cdeaa5015f39beb1f2a289ff4b8ad4774d281bb6",
     "README.md": "a695f6f6f2446d866287e9a3614e03a22fa85bcc6c8cc16e773205e9921cfab7"
+  },
+  "diverged": {},
+  "packageLocal": {
+    "constants.ts": "Moved constants (TG-1)",
+    "threshold.ts": "Moved hop threshold (TG-1)",
+    "record.ts": "TrustEdgeRecord replaces the AttentionX EventRecord import (TG-1)",
+    "main.ts": "Package entry (TG-D4)"
   }
 }

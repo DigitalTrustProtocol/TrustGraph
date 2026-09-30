@@ -70,7 +70,10 @@ Protocol specs stay where they are today: `AttentionX/docs/NIP-32009.md`,
 | --- | --- |
 | D1 | Home of the library: this new repo (`DigitalTrustProtocol/TrustGraph`) or the upstream `DigitalTrustProtocol/Trust` |
 | D2 | npm scope (`@dtp/*` is a working name) |
-| D3 | Permission to extract `src/graph/trust` and to fix gaps G1–G3, G6, G8 (binding inside the walk), G10 (walk budgets), and G12 (level structure for `graph.field`) — G10 and G12 are required before the Personal Server can offer the full shared API (and so before the session suite can pass on both servers) |
-| D4 | Disconnected-result rule for gap G4 |
-| D5 | Default binding mode per runtime (`lenient` proposed for Attention and the Personal Server; Global Server open) |
 | D6 | Name of the witness-only context for verifier services (`identity:attest` proposed) |
+
+Decided (2026-10-01, [wot-model.md §9](specs/wot-model.md#9-product-profile-attention-scope-profile-xcom)):
+**D3** gap fixes are approved in `@dtp/trust-graph` only (AttentionX
+`src/graph/trust` is not updated); **D4** option A (a disconnected result has
+no statements, `neutral = 0`, no `direct`); **D5** `lenient` is the default
+binding mode on every runtime, `strict` on request.
