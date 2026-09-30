@@ -4,7 +4,7 @@
  */
 
 import { isValidAt, trustEdgeValue, type IEdge } from './Edge'
-import { eachPeerEdge, removePeerEdge, Node } from './Node'
+import { eachPeerEdge, removePeerEdge, Node, type PeerEdgeMap } from './Node'
 import type { ITrustEvent, SubjectType } from './types'
 import { TRUST_STATEMENT_KIND } from './constants'
 import { RATING_STATEMENT_KIND } from './constants'
@@ -83,6 +83,18 @@ function contextIndexKeys(kind: number, context: string): string[] {
 
 function contextKey(kind: ScoreKind, context: string): string {
   return contextIndexKeys(kind, context)[0]!
+}
+
+function unlinkPeerEdge(
+  adjacency: Map<number, PeerEdgeMap>,
+  contextIndex: number,
+  peerIndex: number,
+  edgeIndex: number,
+): void {
+  const peers = adjacency.get(contextIndex)
+  if (!peers) return
+  removePeerEdge(peers, peerIndex, edgeIndex)
+  if (peers.size === 0) adjacency.delete(contextIndex)
 }
 
 function shouldReplaceEdge(
@@ -188,8 +200,6 @@ export class Graph implements IGraph {
     const authorNode = this.addNode(trust.pubkey, 'p')
     const subjectNode = this.addNode(trust.subject, trust.subjectType)
 
-    const createdAt = trust.created_at
-
     const edgeIndex = this.addEdge(trust)
     if (edgeIndex === null) return false
 
@@ -197,20 +207,10 @@ export class Graph implements IGraph {
       authorNode.addOut(contextIndex, subjectNode.index, edgeIndex)
       subjectNode.addIn(contextIndex, authorNode.index, edgeIndex)
     } else {
-      authorNode.removeOut(
-        this,
-        contextIndex,
-        subjectNode.index,
-        createdAt,
-        trust.kind,
-      )
-      subjectNode.removeIn(
-        this,
-        contextIndex,
-        authorNode.index,
-        createdAt,
-        trust.kind,
-      )
+      // A Delete unlinks only its own slot (gap G3); sibling slots from the
+      // same author to the same node keep their edges.
+      unlinkPeerEdge(authorNode.outbound, contextIndex, subjectNode.index, edgeIndex)
+      unlinkPeerEdge(subjectNode.inbound, contextIndex, authorNode.index, edgeIndex)
     }
 
     this.eventAddedSinceLastSave++
@@ -588,15 +588,7 @@ export class Graph implements IGraph {
     const contextIndex = this.getContextIndex(edge.c_tag ?? '', edge.kind as ScoreKind)
     if (authorNode && index !== undefined) authorNode.edges.delete(index)
     if (!authorNode || !subjectNode || contextIndex === undefined) return
-    const outMap = authorNode.outbound.get(contextIndex)
-    if (outMap) {
-      removePeerEdge(outMap, subjectNode.index, index)
-      if (outMap.size === 0) authorNode.outbound.delete(contextIndex)
-    }
-    const inMap = subjectNode.inbound.get(contextIndex)
-    if (inMap) {
-      removePeerEdge(inMap, authorNode.index, index)
-      if (inMap.size === 0) subjectNode.inbound.delete(contextIndex)
-    }
+    unlinkPeerEdge(authorNode.outbound, contextIndex, subjectNode.index, index)
+    unlinkPeerEdge(subjectNode.inbound, contextIndex, authorNode.index, index)
   }
 }

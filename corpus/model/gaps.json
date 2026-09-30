@@ -40,9 +40,9 @@
     {
       "id": "gap-g3-delete-unlinks-sibling-slot",
       "model": "dtp-wot/1",
-      "tags": ["slot", "delete", "gap:G3"],
+      "tags": ["slot", "delete"],
       "profile": "x.com",
-      "description": "A Delete in the empty-scope slot must affect only its own slot. Today it unlinks every same-kind record from that author to that node in the bucket with created_at <= the Delete.",
+      "description": "A Delete in the empty-scope slot affects only its own slot (fixed gap G3: the heap used to unlink every same-kind record from that author to that node in the bucket with created_at <= the Delete).",
       "ops": [
         { "op": "apply", "record": { "addressKey": "32009:@root:empty-scope", "id": "@g3-empty", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1, "scopeRank": 1 } },
         { "op": "apply", "record": { "addressKey": "32009:@root:xcom-scope", "id": "@g3-xcom", "pubkey": "@root", "kind": 32009, "created_at": 20, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1, "scopeRank": 2 } },
@@ -52,8 +52,7 @@
         {
           "type": "trust",
           "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 40 },
-          "expectModel": { "connected": true, "trust": 1, "sourceEventIds": ["@g3-xcom"] },
-          "expectCurrent": { "connected": false, "trust": 0 }
+          "expect": { "connected": true, "trust": 1, "sourceEventIds": ["@g3-xcom"] }
         }
       ]
     },

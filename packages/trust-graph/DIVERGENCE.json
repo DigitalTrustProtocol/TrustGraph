@@ -66,7 +66,14 @@
     "types.ts": "0fa90fc965fbf0ac885db332cdeaa5015f39beb1f2a289ff4b8ad4774d281bb6",
     "README.md": "a695f6f6f2446d866287e9a3614e03a22fa85bcc6c8cc16e773205e9921cfab7"
   },
-  "diverged": {},
+  "diverged": {
+    "Graph.ts": [
+      "G3"
+    ],
+    "Node.ts": [
+      "G3"
+    ]
+  },
   "packageLocal": {
     "constants.ts": "Moved constants (TG-1)",
     "threshold.ts": "Moved hop threshold (TG-1)",

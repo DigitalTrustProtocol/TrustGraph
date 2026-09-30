@@ -5,7 +5,6 @@
  * A peer may still hold multiple same-kind edge indexes in one bucket.
  */
 
-import type { Graph } from './Graph'
 import type { Identity, SubjectType } from './types'
 
 /** contextIndex → peerNodeIndex → edge indexes (same kind). */
@@ -92,61 +91,5 @@ export class Node {
       this.inbound.set(contextIndex, inMap)
     }
     pushPeerEdge(inMap, subjectIndex, edgeIndex)
-  }
-
-  removeOut(
-    graph: Graph,
-    contextIndex: number,
-    subjectIndex: number,
-    createdAt: number,
-    kind: number,
-  ): void {
-    const contextMap = this.outbound.get(contextIndex)
-    if (!contextMap) return
-    const edges = contextMap.get(subjectIndex)
-    if (!edges) return
-    const keep: number[] = []
-    for (const edgeIndex of edges) {
-      const edge = graph.edgesList[edgeIndex]
-      if (
-        edge &&
-        edge.kind === kind &&
-        edge.created_at <= createdAt
-      ) {
-        continue
-      }
-      keep.push(edgeIndex)
-    }
-    if (keep.length === 0) contextMap.delete(subjectIndex)
-    else contextMap.set(subjectIndex, keep)
-    if (contextMap.size === 0) this.outbound.delete(contextIndex)
-  }
-
-  removeIn(
-    graph: Graph,
-    contextIndex: number,
-    subjectIndex: number,
-    createdAt: number,
-    kind: number,
-  ): void {
-    const inMap = this.inbound.get(contextIndex)
-    if (!inMap) return
-    const edges = inMap.get(subjectIndex)
-    if (!edges) return
-    const keep: number[] = []
-    for (const edgeIndex of edges) {
-      const edge = graph.edgesList[edgeIndex]
-      if (
-        edge &&
-        edge.kind === kind &&
-        edge.created_at <= createdAt
-      ) {
-        continue
-      }
-      keep.push(edgeIndex)
-    }
-    if (keep.length === 0) inMap.delete(subjectIndex)
-    else inMap.set(subjectIndex, keep)
-    if (inMap.size === 0) this.inbound.delete(contextIndex)
   }
 }
