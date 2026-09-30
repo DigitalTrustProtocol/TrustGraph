@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://digitaltrustprotocol.org/schemas/telemetry.v1.json",
+  "title": "dtp-telemetry/1 snapshot",
+  "description": "GET /admin/api/telemetry on every DTP server (telemetry.md). Fields that do not apply are null, never missing. Source of truth for TypeScript: packages/telemetry-ui/src/schema.ts.",
+  "type": "object",
+  "required": ["schema", "generatedAt", "server", "health", "graph", "ingest", "sources", "queries", "connections", "memory", "roots", "logs", "config", "alerts"],
+  "$defs": {
+    "count": { "type": "integer", "minimum": 0 },
+    "number": { "type": "number" },
+    "nullableNumber": { "type": ["number", "null"] },
+    "latency": {
+      "type": "object",
+      "required": ["p50", "p95", "p99", "count"],
+      "properties": {
+        "p50": { "$ref": "#/$defs/nullableNumber" },
+        "p95": { "$ref": "#/$defs/nullableNumber" },
+        "p99": { "$ref": "#/$defs/nullableNumber" },
+        "count": { "$ref": "#/$defs/count" }
+      }
+    },
+    "ingestCounts": {
+      "type": "object",
+      "required": ["accepted", "duplicate", "invalid", "blocked", "rate_limited", "deleted"],
+      "properties": {
+        "accepted": { "$ref": "#/$defs/count" },
+        "duplicate": { "$ref": "#/$defs/count" },
+        "invalid": { "$ref": "#/$defs/count" },
+        "blocked": { "$ref": "#/$defs/count" },
+        "rate_limited": { "$ref": "#/$defs/count" },
+        "deleted": { "$ref": "#/$defs/count" }
+      }
+    },
+    "opCounts": {
+      "type": "object",
+      "required": ["ok", "busy", "rate_limited", "invalid", "error"],
+      "properties": {
+        "ok": { "$ref": "#/$defs/count" },
+        "busy": { "$ref": "#/$defs/count" },
+        "rate_limited": { "$ref": "#/$defs/count" },
+        "invalid": { "$ref": "#/$defs/count" },
+        "error": { "$ref": "#/$defs/count" }
+      }
+    },
+    "writer": {
+      "type": "object",
+      "required": ["pubkey", "connectedSince", "events", "rejects"],
+      "properties": {
+        "pubkey": { "type": ["string", "null"] },
+        "connectedSince": { "$ref": "#/$defs/number" },
+        "events": { "$ref": "#/$defs/count" },
+        "rejects": { "$ref": "#/$defs/count" }
+      }
+    },
+    "numberMap": { "type": "object", "additionalProperties": { "type": "number" } }
+  },
+  "properties": {
+    "schema": { "const": "dtp-telemetry/1" },
+    "generatedAt": { "$ref": "#/$defs/number" },
+    "server": {
+      "type": "object",
+      "required": ["kind", "version", "api", "model", "corpus", "instanceId", "startedAt", "uptimeSeconds"],
+      "properties": {
+        "kind": { "enum": ["personal", "global", "sync"] },
+        "version": { "type": "string" },
+        "api": { "type": "string" },
+        "model": { "type": "string" },
+        "corpus": { "type": "string" },
+        "instanceId": { "type": "string" },
+        "startedAt": { "$ref": "#/$defs/number" },
+        "uptimeSeconds": { "$ref": "#/$defs/number" }
+      }
+    },
+    "health": {
+      "type": "object",
+      "required": ["ready", "stateSinceSeconds", "notReadyReason"],
+      "properties": {
+        "ready": { "type": "boolean" },
+        "stateSinceSeconds": { "$ref": "#/$defs/number" },
+        "notReadyReason": { "type": ["string", "null"] }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "required": ["graphVersion", "epochLagSeconds", "nodes", "edges", "claims", "hintedStatements", "deleteFloors", "bytes", "bytesPerEdge", "impl"],
+      "properties": {
+        "graphVersion": { "$ref": "#/$defs/count" },
+        "epochLagSeconds": { "$ref": "#/$defs/nullableNumber" },
+        "nodes": { "$ref": "#/$defs/count" },
+        "edges": {
+          "type": "object",
+          "required": ["32009", "32014"],
+          "properties": { "32009": { "$ref": "#/$defs/count" }, "32014": { "$ref": "#/$defs/count" } }
+        },
+        "claims": { "$ref": "#/$defs/count" },
+        "hintedStatements": { "$ref": "#/$defs/count" },
+        "deleteFloors": { "$ref": "#/$defs/count" },
+        "bytes": {
+          "type": "object",
+          "required": ["total", "resident", "pinned"],
+          "properties": {
+            "total": { "$ref": "#/$defs/nullableNumber" },
+            "resident": { "$ref": "#/$defs/nullableNumber" },
+            "pinned": { "$ref": "#/$defs/nullableNumber" }
+          }
+        },
+        "bytesPerEdge": { "$ref": "#/$defs/nullableNumber" },
+        "impl": { "type": "object" }
+      }
+    },
+    "ingest": {
+      "type": "object",
+      "required": ["eventsPerSecond", "byKind", "rejectsByPrefix", "deletions", "queueDepth", "queueCap", "pendingOks", "writers"],
+      "properties": {
+        "eventsPerSecond": {
+          "type": "object",
+          "required": ["32009", "32014", "10011", "5"],
+          "additionalProperties": { "type": "number" }
+        },
+        "byKind": {
+          "type": "object",
+          "required": ["32009", "32014", "10011", "5"],
+          "additionalProperties": { "$ref": "#/$defs/ingestCounts" }
+        },
+        "rejectsByPrefix": { "$ref": "#/$defs/numberMap" },
+        "deletions": { "$ref": "#/$defs/count" },
+        "queueDepth": { "$ref": "#/$defs/count" },
+        "queueCap": { "$ref": "#/$defs/count" },
+        "pendingOks": { "$ref": "#/$defs/count" },
+        "writers": { "type": "array", "items": { "$ref": "#/$defs/writer" } }
+      }
+    },
+    "sources": {
+      "type": "object",
+      "required": ["relays", "frontier", "writers", "wantsOpen"],
+      "properties": {
+        "relays": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "required": ["url", "state", "lastEoseAt", "cursorLagSeconds", "errors", "retryAt"],
+            "properties": {
+              "url": { "type": "string" },
+              "state": { "enum": ["idle", "connecting", "syncing", "live", "backoff", "error"] },
+              "lastEoseAt": { "$ref": "#/$defs/nullableNumber" },
+              "cursorLagSeconds": { "$ref": "#/$defs/nullableNumber" },
+              "errors": { "$ref": "#/$defs/count" },
+              "retryAt": { "$ref": "#/$defs/nullableNumber" }
+            }
+          }
+        },
+        "frontier": {
+          "type": ["object", "null"],
+          "required": ["size", "truncationReasons"],
+          "properties": {
+            "size": { "$ref": "#/$defs/count" },
+            "truncationReasons": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "writers": { "type": ["array", "null"], "items": { "$ref": "#/$defs/writer" } },
+        "wantsOpen": { "type": ["integer", "null"] }
+      }
+    },
+    "queries": {
+      "type": "object",
+      "required": ["opsPerSecond", "totals", "latency", "inFlight", "guardrailHits", "backgroundCompletions", "fieldCache"],
+      "properties": {
+        "opsPerSecond": { "$ref": "#/$defs/numberMap" },
+        "totals": { "type": "object", "additionalProperties": { "$ref": "#/$defs/opCounts" } },
+        "latency": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["warm", "cold"],
+            "properties": { "warm": { "$ref": "#/$defs/latency" }, "cold": { "$ref": "#/$defs/latency" } }
+          }
+        },
+        "inFlight": { "$ref": "#/$defs/count" },
+        "guardrailHits": { "$ref": "#/$defs/numberMap" },
+        "backgroundCompletions": { "$ref": "#/$defs/count" },
+        "fieldCache": {
+          "type": ["object", "null"],
+          "required": ["hits", "misses", "bytes"],
+          "properties": {
+            "hits": { "$ref": "#/$defs/count" },
+            "misses": { "$ref": "#/$defs/count" },
+            "bytes": { "$ref": "#/$defs/count" }
+          }
+        }
+      }
+    },
+    "connections": {
+      "type": "object",
+      "required": ["open", "byRole", "byOrigin", "authentications", "slowClientDisconnects"],
+      "properties": {
+        "open": { "$ref": "#/$defs/count" },
+        "byRole": {
+          "type": "object",
+          "required": ["anonymous_reader", "member_reader", "writer", "admin"],
+          "additionalProperties": { "$ref": "#/$defs/count" }
+        },
+        "byOrigin": {
+          "type": "object",
+          "required": ["extension", "native", "other"],
+          "additionalProperties": { "$ref": "#/$defs/count" }
+        },
+        "authentications": { "$ref": "#/$defs/count" },
+        "slowClientDisconnects": { "$ref": "#/$defs/count" }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "required": ["limitBytes", "rssBytes", "shares", "watchdog", "impl"],
+      "properties": {
+        "limitBytes": { "$ref": "#/$defs/nullableNumber" },
+        "rssBytes": { "$ref": "#/$defs/number" },
+        "shares": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["bytes", "limit"],
+            "properties": { "bytes": { "$ref": "#/$defs/number" }, "limit": { "$ref": "#/$defs/nullableNumber" } }
+          }
+        },
+        "watchdog": { "enum": ["ok", "pressure", "critical"] },
+        "impl": { "type": "object" }
+      }
+    },
+    "roots": {
+      "type": "object",
+      "required": ["active", "warming", "coveragePushes"],
+      "properties": {
+        "active": { "$ref": "#/$defs/count" },
+        "warming": { "$ref": "#/$defs/count" },
+        "coveragePushes": { "$ref": "#/$defs/count" }
+      }
+    },
+    "logs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ts", "level", "message"],
+        "properties": {
+          "ts": { "$ref": "#/$defs/number" },
+          "level": { "enum": ["warn", "error"] },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "required": ["effective", "nip11", "membership"],
+      "properties": {
+        "effective": { "type": "object" },
+        "nip11": { "type": "object" },
+        "membership": {
+          "type": ["object", "null"],
+          "required": ["counts", "members"],
+          "properties": {
+            "counts": {
+              "type": "object",
+              "required": ["read", "write", "admin"],
+              "additionalProperties": { "$ref": "#/$defs/count" }
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["pubkey", "roles"],
+                "properties": {
+                  "pubkey": { "type": "string" },
+                  "roles": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "alerts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "active", "since"],
+        "properties": {
+          "name": { "enum": ["not-ready", "memory-pressure", "ingest-backlog", "guardrail-storm", "source-down", "slow-queries"] },
+          "active": { "type": "boolean" },
+          "since": { "$ref": "#/$defs/nullableNumber" }
+        }
+      }
+    }
+  }
+}

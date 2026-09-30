@@ -11,6 +11,7 @@ import { neighborhoodFromHeap, type NeighborhoodResult, type NeighborhoodOptions
 import { parseNodeId } from './shared/graph-deeplink'
 import type {
   GraphPathView,
+  GraphVisId,
   RatingClaimEvidence,
   RatingQueryResult,
   ResolvedStatement,
@@ -173,13 +174,27 @@ export function neighborhoodLookup(
   }
   const requested = params.limit ?? 200
   const limit = Math.max(1, Math.min(requested, maxLimit))
-  const result = neighborhoodFromHeap(graph, graphVersion, centerIndex ?? -1, {
+  // Build at the server cap, then cut in eventId order so a truncated
+  // neighborhood does not depend on heap insertion order.
+  const full = neighborhoodFromHeap(graph, graphVersion, centerIndex ?? -1, {
     ...(params.direction !== undefined ? { direction: params.direction } : {}),
     ...(params.valueFilter !== undefined ? { valueFilter: params.valueFilter } : {}),
     ...(params.context !== undefined ? { context: params.context } : {}),
     ...(params.now !== undefined ? { now: params.now } : {}),
-    limit,
+    limit: maxLimit,
     ...(outboundPubkeys.length > 0 ? { outboundPubkeys } : {}),
   })
+  let result = full
+  if (full.edges.length > limit) {
+    const edges = [...full.edges]
+      .sort((a, b) => (a.eventId < b.eventId ? -1 : a.eventId > b.eventId ? 1 : 0))
+      .slice(0, limit)
+    const kept = new Set<GraphVisId>([full.centerId])
+    for (const edge of edges) {
+      kept.add(edge.from)
+      kept.add(edge.to)
+    }
+    result = { ...full, truncated: true, edges, nodes: full.nodes.filter((node) => kept.has(node.id)) }
+  }
   return result.truncated ? { ...result, truncatedReasons: ['neighborhoodLimit'] } : result
 }

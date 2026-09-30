@@ -1,0 +1,178 @@
+{
+  "cases": [
+    {
+      "id": "lookup-incoming-person",
+      "model": "dtp-wot/1",
+      "tags": ["lookup"],
+      "profile": "x.com",
+      "description": "wot-model.md §8.1 over one person's aliases: user:id:100 and the npub @paul. Created_at values are distinct so `recent` order does not depend on ids.",
+      "source": "AttentionX src/graph/incoming.test.ts, GraphManager.incomingUserRecords",
+      "records": [
+        { "id": "@l1", "pubkey": "@alice", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:100", "context": "identity", "value": 1, "scopeRank": 2 },
+        { "id": "@l2", "pubkey": "@bob", "kind": 32009, "created_at": 20, "subjectType": "i", "subject": "user:id:100", "context": "identity", "value": -1, "scopeRank": 2 },
+        { "id": "@l3", "pubkey": "@carol", "kind": 32009, "created_at": 30, "subjectType": "i", "subject": "user:id:100", "value": 0, "scopeRank": 1 },
+        { "id": "@l4", "pubkey": "@alice", "kind": 32009, "created_at": 40, "subjectType": "p", "subject": "@paul", "context": "identity", "value": 1, "scopeRank": 1 },
+        { "id": "@l5", "pubkey": "@bob", "kind": 32009, "created_at": 50, "subjectType": "p", "subject": "@paul", "context": "identity", "value": 1, "scopeRank": 1 },
+        { "id": "@l6", "pubkey": "@carol", "kind": 32009, "created_at": 60, "subjectType": "i", "subject": "user:id:100", "context": "other", "value": 1, "scopeRank": 1 },
+        { "id": "@l7", "pubkey": "@dave", "kind": 32009, "created_at": 70, "subjectType": "i", "subject": "user:id:100", "context": "identity", "value": 1, "expire": 75, "scopeRank": 2 },
+        { "id": "@l8", "pubkey": "@alice", "kind": 32014, "created_at": 11, "subjectType": "i", "subject": "post:id:9", "value": 80, "labels": ["genuine"], "scopeRank": 2 },
+        { "id": "@l9", "pubkey": "@bob", "kind": 32014, "created_at": 12, "subjectType": "i", "subject": "post:id:9", "value": 0, "labels": ["spam"], "scopeRank": 2 },
+        { "id": "@l10", "pubkey": "@carol", "kind": 32009, "created_at": 25, "subjectType": "i", "subject": "user:id:100", "context": "identity", "value": 1, "scopeRank": 2 }
+      ],
+      "queries": [
+        {
+          "type": "lookup-incoming",
+          "note": "selected over Chain(32009, identity): Carol's identity slot wins over her general one; Dave's statement expired.",
+          "input": { "keys": ["i:user:id:100"], "context": "identity", "now": 100 },
+          "expect": { "items": ["@l10", "@l2", "@l1"], "nextCursor": false, "totals": null }
+        },
+        {
+          "type": "lookup-incoming",
+          "input": { "keys": ["i:user:id:100"], "context": "identity", "now": 100 },
+          "expect": {
+            "items": [
+              { "eventId": "@l10", "kind": 32009, "author": "@carol", "subject": { "type": "i", "value": "user:id:100" }, "context": "identity", "value": 1, "createdAt": 25 },
+              { "eventId": "@l2", "value": -1 },
+              { "eventId": "@l1", "value": 1 }
+            ]
+          }
+        },
+        {
+          "type": "lookup-incoming",
+          "note": "raw returns every winner in the chain buckets.",
+          "input": { "keys": ["i:user:id:100"], "context": "identity", "mode": "raw", "now": 100 },
+          "expect": { "items": ["@l3", "@l10", "@l2", "@l1"] }
+        },
+        {
+          "type": "lookup-incoming",
+          "note": "mergeKeys drops Alice's user:id row (same value as her p row) and keeps Bob's conflicting pair.",
+          "input": { "keys": ["i:user:id:100", "p:@paul"], "context": "identity", "mergeKeys": true, "withTotals": true, "now": 100 },
+          "expect": { "items": ["@l5", "@l4", "@l10", "@l2"], "totals": { "trust": 3, "neutral": 0, "distrust": 1, "ratings": 0 } }
+        },
+        {
+          "type": "lookup-incoming",
+          "input": { "keys": ["i:user:id:100", "p:@paul"], "context": "identity", "mergeKeys": true, "now": 100 },
+          "pages": [
+            { "limit": 2, "expectItems": ["@l5", "@l4"], "expectNextCursor": true },
+            { "limit": 2, "expectItems": ["@l10", "@l2"], "expectNextCursor": false }
+          ]
+        },
+        {
+          "type": "lookup-counts",
+          "input": { "keys": ["i:user:id:100", "p:@paul"], "direction": "incoming", "context": "identity", "now": 100 },
+          "expect": {
+            "counts": {
+              "i:user:id:100": { "trust": 2, "neutral": 0, "distrust": 1, "ratings": 0 },
+              "p:@paul": { "trust": 2, "neutral": 0, "distrust": 0, "ratings": 0 }
+            }
+          }
+        },
+        {
+          "type": "lookup-counts",
+          "input": { "keys": ["i:user:id:100", "p:@paul"], "direction": "incoming", "context": "identity", "mergeKeys": true, "now": 100 },
+          "expect": { "counts": { "merged": { "trust": 3, "neutral": 0, "distrust": 1, "ratings": 0 } } }
+        },
+        {
+          "type": "lookup-incoming",
+          "note": "contextMatch any: one statement per author, highest scopeRank first (P2).",
+          "input": { "keys": ["i:user:id:100"], "contextMatch": "any", "now": 100 },
+          "expect": { "items": ["@l10", "@l2", "@l1"] }
+        },
+        {
+          "type": "lookup-incoming",
+          "input": { "keys": ["i:user:id:100"], "contextMatch": "any", "includeInactive": true, "now": 100 },
+          "expect": { "items": ["@l7", "@l10", "@l2", "@l1"] }
+        },
+        {
+          "type": "lookup-incoming",
+          "input": { "keys": ["i:user:id:100"], "context": "identity", "values": [1], "now": 100 },
+          "expect": { "items": ["@l10", "@l1"] }
+        },
+        {
+          "type": "lookup-incoming",
+          "input": { "keys": ["i:user:id:100"], "context": "identity", "mode": "raw", "since": 20, "until": 30, "now": 100 },
+          "expect": { "items": ["@l3", "@l10", "@l2"] }
+        },
+        {
+          "type": "lookup-incoming",
+          "note": "order author: author pubkey hex ascending (alice 2bd8… < carol 4c26… < dave 61ea… < bob 81b6…), then created_at desc.",
+          "input": { "keys": ["i:user:id:100"], "contextMatch": "any", "mode": "raw", "includeInactive": true, "order": "author", "now": 100 },
+          "pages": [
+            { "limit": 4, "expectItems": ["@l1", "@l6", "@l3", "@l10"], "expectNextCursor": true },
+            { "limit": 4, "expectItems": ["@l7", "@l2"], "expectNextCursor": false }
+          ]
+        },
+        {
+          "type": "lookup-incoming",
+          "note": "Ratings: exact empty context, label filter.",
+          "input": { "keys": ["i:post:id:9"], "kinds": [32014], "now": 100 },
+          "expect": { "items": [{ "eventId": "@l9", "score": 0, "labels": ["spam"] }, { "eventId": "@l8", "score": 80 }] }
+        },
+        {
+          "type": "lookup-incoming",
+          "input": { "keys": ["i:post:id:9"], "kinds": [32014], "labels": ["genuine"], "withTotals": true, "now": 100 },
+          "expect": { "items": ["@l8"], "totals": { "trust": 0, "neutral": 0, "distrust": 0, "ratings": 1 } }
+        }
+      ]
+    },
+    {
+      "id": "lookup-outgoing-author",
+      "model": "dtp-wot/1",
+      "tags": ["lookup"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/outgoing.test.ts, GraphManager.outgoingUserRecords",
+      "records": [
+        { "id": "@o1", "pubkey": "@alice", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:100", "context": "identity", "value": 1 },
+        { "id": "@o2", "pubkey": "@alice", "kind": 32009, "created_at": 40, "subjectType": "p", "subject": "@paul", "context": "identity", "value": 1 },
+        { "id": "@o3", "pubkey": "@alice", "kind": 32014, "created_at": 11, "subjectType": "i", "subject": "post:id:9", "value": 80, "scopeRank": 2 },
+        { "id": "@o4", "pubkey": "@alice", "kind": 32009, "created_at": 12, "subjectType": "i", "subject": "post:id:9", "value": -1 },
+        { "id": "@o5", "pubkey": "@bob", "kind": 32009, "created_at": 13, "subjectType": "i", "subject": "user:id:100", "context": "identity", "value": 0 }
+      ],
+      "queries": [
+        {
+          "type": "lookup-outgoing",
+          "input": { "keys": ["p:@alice"], "kinds": [32009, 32014], "contextMatch": "any", "now": 100 },
+          "expect": { "items": ["@o2", "@o4", "@o3", "@o1"] }
+        },
+        {
+          "type": "lookup-outgoing",
+          "note": "QUERY_OUTGOING_TRUST mapping: people only.",
+          "input": { "keys": ["p:@alice"], "context": "identity", "subjectTypes": ["p", "user:id"], "now": 100 },
+          "expect": { "items": ["@o2", "@o1"] }
+        },
+        {
+          "type": "lookup-outgoing",
+          "input": { "keys": ["p:@alice"], "kinds": [32014], "now": 100 },
+          "expect": { "items": [{ "eventId": "@o3", "kind": 32014, "score": 80, "subject": { "type": "i", "value": "post:id:9" } }] }
+        },
+        {
+          "type": "lookup-counts",
+          "input": { "keys": ["p:@alice", "p:@bob"], "direction": "outgoing", "kinds": [32009, 32014], "contextMatch": "any", "now": 100 },
+          "expect": {
+            "counts": {
+              "p:@alice": { "trust": 2, "neutral": 0, "distrust": 1, "ratings": 1 },
+              "p:@bob": { "trust": 0, "neutral": 1, "distrust": 0, "ratings": 0 }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "lookup-keys-not-resolved-through-binds",
+      "model": "dtp-wot/1",
+      "tags": ["lookup", "own-evidence"],
+      "profile": "x.com",
+      "description": "Even where the heap merges a bound user:id with its pubkey, a lookup key only returns records addressed to that exact key.",
+      "source": "AttentionX GraphManager.incomingRecords",
+      "records": [
+        { "id": "@k1", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:100", "context": "identity", "value": 1 },
+        { "id": "@k2", "pubkey": "@bob", "kind": 32009, "created_at": 2, "subjectType": "p", "subject": "@paul", "context": "identity", "value": 1 }
+      ],
+      "ownEvidence": [{ "root": "@root", "iKey": "user:id:100", "pubkey": "@paul", "source": "bio" }],
+      "queries": [
+        { "type": "lookup-incoming", "input": { "keys": ["i:user:id:100"], "context": "identity", "now": 10 }, "expect": { "items": ["@k1"] } },
+        { "type": "lookup-incoming", "input": { "keys": ["p:@paul"], "context": "identity", "now": 10 }, "expect": { "items": ["@k2"] } }
+      ]
+    }
+  ]
+}

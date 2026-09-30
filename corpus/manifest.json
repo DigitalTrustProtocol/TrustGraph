@@ -1,0 +1,22 @@
+{
+  "corpus": "dtp-wot-corpus/1",
+  "model": "dtp-wot/1",
+  "cases": [
+    "model/bind.json",
+    "model/context.json",
+    "model/frontier.json",
+    "model/gaps.json",
+    "model/lookup.json",
+    "model/neighborhood.json",
+    "model/nip09.json",
+    "model/path.json",
+    "model/rating.json",
+    "model/slot.json",
+    "model/threshold.json",
+    "model/walk.json",
+    "protocol/kind-10011.json",
+    "protocol/kind-32009.json",
+    "protocol/kind-32014.json",
+    "protocol/kind-5-and-others.json"
+  ]
+}

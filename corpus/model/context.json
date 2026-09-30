@@ -1,0 +1,96 @@
+{
+  "cases": [
+    {
+      "id": "context-parent-fallback",
+      "model": "dtp-wot/1",
+      "tags": ["context"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/graph.test.ts (context resolution)",
+      "records": [
+        { "id": "@c-general", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 1 },
+        { "id": "@c-security", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "context": "security", "value": -1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "note": "security:audit has no slot; its parent security does.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "security:audit", "now": 10 },
+          "expect": {
+            "resolution": "distrusted", "trust": 0, "distrust": 1,
+            "direct": { "eventId": "@c-security", "context": "security", "requestedContext": "security:audit", "contextMatch": "parent", "value": -1 }
+          }
+        },
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "", "now": 10 },
+          "expect": { "resolution": "trusted", "direct": { "eventId": "@c-general", "contextMatch": "exact" } }
+        }
+      ]
+    },
+    {
+      "id": "context-inactive-slot-falls-through",
+      "model": "dtp-wot/1",
+      "tags": ["context", "activity"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@c-general", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 1 },
+        { "id": "@c-future", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "context": "security:audit", "value": -1, "activate": 20 },
+        { "id": "@c-expired", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:43", "value": 1 },
+        { "id": "@c-expired-specific", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:43", "context": "security:audit", "value": -1, "expire": 5 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "security:audit", "now": 10 },
+          "expect": { "direct": { "eventId": "@c-general", "context": "", "contextMatch": "general", "value": 1 } }
+        },
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "security:audit", "now": 20 },
+          "expect": { "direct": { "eventId": "@c-future", "contextMatch": "exact", "value": -1 } }
+        },
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:43" }, "context": "security:audit", "now": 10 },
+          "expect": { "direct": { "eventId": "@c-expired", "contextMatch": "general" } }
+        }
+      ]
+    },
+    {
+      "id": "context-neutral-occupies-its-bucket",
+      "model": "dtp-wot/1",
+      "tags": ["context", "neutral"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@c-general", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 1 },
+        { "id": "@c-neutral", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "context": "security:audit", "value": 0, "content": "Watching this purpose." }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "security:audit", "now": 10 },
+          "expect": { "resolution": "none", "trust": 0, "direct": { "eventId": "@c-neutral", "value": 0, "content": "Watching this purpose." } }
+        }
+      ]
+    },
+    {
+      "id": "context-labels-are-display-only",
+      "model": "dtp-wot/1",
+      "tags": ["context", "labels"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@c-own", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 1, "labels": ["reviewer"], "labelHints": { "reviewer": "Trusted reviewer of aerospace accounts" } }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "now": 10 },
+          "expect": {
+            "trust": 1, "distrust": 0,
+            "statements": [{ "eventId": "@c-own", "labels": ["reviewer"], "labelHints": { "reviewer": "Trusted reviewer of aerospace accounts" } }]
+          }
+        }
+      ]
+    }
+  ]
+}

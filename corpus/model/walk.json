@@ -1,0 +1,318 @@
+{
+  "cases": [
+    {
+      "id": "walk-direct-trust",
+      "model": "dtp-wot/1",
+      "tags": ["walk"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/graph.test.ts",
+      "records": [
+        { "id": "@e-root-bob", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1, "scopeRank": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 100 },
+          "expect": {
+            "connected": true, "degree": 1, "trust": 1, "distrust": 0, "neutral": 0, "trustValue": 1, "resolution": "trusted",
+            "statements": [{ "eventId": "@e-root-bob", "author": "@root", "value": 1, "distance": 0, "contextMatch": "exact", "context": "identity", "requestedContext": "identity" }],
+            "direct": { "eventId": "@e-root-bob", "distance": 0 },
+            "sourceEventIds": ["@e-root-bob"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "walk-two-hops",
+      "model": "dtp-wot/1",
+      "tags": ["walk"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@e-root-alice", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@e-alice-bob", "pubkey": "@alice", "kind": 32009, "created_at": 11, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 100 },
+          "expect": {
+            "connected": true, "degree": 2, "trust": 1, "distrust": 0, "resolution": "trusted",
+            "statements": [{ "eventId": "@e-alice-bob", "author": "@alice", "value": 1, "distance": 1 }],
+            "direct": null
+          }
+        },
+        {
+          "type": "trust",
+          "note": "The same heap seen from Bob: Bob made no statements, so nothing is reachable.",
+          "input": { "rootPubkey": "@bob", "subject": { "type": "p", "value": "@alice" }, "context": "identity", "now": 100 },
+          "expect": { "connected": false, "degree": 0, "trust": 0, "resolution": "none", "statements": [] }
+        }
+      ]
+    },
+    {
+      "id": "walk-nearest-degree-wins",
+      "model": "dtp-wot/1",
+      "tags": ["walk"],
+      "profile": "x.com",
+      "description": "Direct trust stops the walk at degree 1; a farther distrust never dilutes it.",
+      "records": [
+        { "id": "@e-root-t", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:42", "context": "identity", "value": 1 },
+        { "id": "@e-root-alice", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@e-alice-t", "pubkey": "@alice", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:42", "context": "identity", "value": -1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:42" }, "context": "identity", "now": 50 },
+          "expect": { "connected": true, "degree": 1, "trust": 1, "distrust": 0, "resolution": "trusted", "sourceEventIds": ["@e-root-t"] }
+        }
+      ]
+    },
+    {
+      "id": "walk-aggregates-hitting-degree",
+      "model": "dtp-wot/1",
+      "tags": ["walk", "band"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@e-to-a", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@e-to-b", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 },
+        { "id": "@e-to-c", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 1 },
+        { "id": "@e-a-t", "pubkey": "@alice", "kind": 32009, "created_at": 2, "subjectType": "i", "subject": "user:id:42", "context": "identity", "value": 1 },
+        { "id": "@e-b-t", "pubkey": "@bob", "kind": 32009, "created_at": 3, "subjectType": "i", "subject": "user:id:42", "context": "identity", "value": 1 },
+        { "id": "@e-c-t", "pubkey": "@carol", "kind": 32009, "created_at": 4, "subjectType": "i", "subject": "user:id:42", "context": "identity", "value": -1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "note": "67 % lies between red 25 and green 75: mixed. Statements in P3 order (createdAt desc at equal distance).",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:42" }, "context": "identity", "now": 10 },
+          "expect": {
+            "connected": true, "degree": 2, "trust": 2, "distrust": 1, "trustValue": 1, "resolution": "mixed",
+            "statements": [
+              { "eventId": "@e-c-t", "author": "@carol", "value": -1, "distance": 1 },
+              { "eventId": "@e-b-t", "author": "@bob", "value": 1, "distance": 1 },
+              { "eventId": "@e-a-t", "author": "@alice", "value": 1, "distance": 1 }
+            ]
+          }
+        },
+        {
+          "type": "trust",
+          "note": "Lowering green to 60 makes 67 % trusted.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:42" }, "context": "identity", "now": 10, "followTrustThreshold": 60, "followTrustRed": 25 },
+          "expect": { "resolution": "trusted", "followTrustThreshold": 60, "followTrustRed": 25 }
+        },
+        {
+          "type": "trust",
+          "note": "Red above the share: distrusted band only when percent < red.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:42" }, "context": "identity", "now": 10, "followTrustThreshold": 90, "followTrustRed": 70 },
+          "expect": { "resolution": "distrusted", "followTrustThreshold": 90, "followTrustRed": 70 }
+        }
+      ]
+    },
+    {
+      "id": "walk-only-positive-pubkey-hops",
+      "model": "dtp-wot/1",
+      "tags": ["walk", "hop-rules"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/graph.test.ts (follows only active positive p edges)",
+      "records": [
+        { "id": "@e-to-alice", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@e-alice-t", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:7", "value": 1 },
+        { "id": "@e-to-bob", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": -1 },
+        { "id": "@e-bob-t", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:7", "value": -1 },
+        { "id": "@e-to-carol", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 0 },
+        { "id": "@e-carol-t", "pubkey": "@carol", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:7", "value": -1 },
+        { "id": "@e-to-x", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:5", "context": "identity", "value": 1 },
+        { "id": "@e-dave-t", "pubkey": "@dave", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:7", "value": -1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "note": "Post trust queries use context identity and fall back to the global bucket where post trust is published.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:7" }, "context": "identity", "now": 10 },
+          "expect": {
+            "connected": true, "degree": 2, "trust": 1, "distrust": 0, "resolution": "trusted",
+            "statements": [{ "eventId": "@e-alice-t", "author": "@alice", "contextMatch": "general", "context": "" }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "walk-unbound-user-id-is-terminal",
+      "model": "dtp-wot/1",
+      "tags": ["walk", "hop-rules"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@e-root-x", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:77", "context": "identity", "value": 1 },
+        { "id": "@e-alice-t", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": -1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 10 },
+          "expect": { "connected": false, "degree": 0, "resolution": "none", "statements": [] }
+        },
+        {
+          "type": "trust",
+          "note": "The X account itself is direct evidence.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:77" }, "context": "identity", "now": 10 },
+          "expect": { "connected": true, "degree": 1, "trust": 1 }
+        }
+      ]
+    },
+    {
+      "id": "walk-self-is-not-evidence",
+      "model": "dtp-wot/1",
+      "tags": ["walk"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/index-resolver.test.ts (degree 0)",
+      "records": [
+        { "id": "@e-root-alice", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@e-alice-root", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@root", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "note": "Querying the root itself: the root's level is skipped as evidence; Alice at degree 2 counts.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@root" }, "context": "identity", "now": 10, "followTrustThreshold": 1 },
+          "expect": { "connected": true, "degree": 2, "trust": 1, "statements": [{ "eventId": "@e-alice-root", "distance": 1 }] }
+        }
+      ]
+    },
+    {
+      "id": "walk-max-depth-cap",
+      "model": "dtp-wot/1",
+      "tags": ["walk", "bounds"],
+      "profile": "x.com",
+      "description": "Chain root → n1 → … → n6 → target is degree 7; maxDepth is clamped to the hard cap 7.",
+      "records": [
+        { "id": "@c1", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@n1", "context": "identity", "value": 1 },
+        { "id": "@c2", "pubkey": "@n1", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@n2", "context": "identity", "value": 1 },
+        { "id": "@c3", "pubkey": "@n2", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@n3", "context": "identity", "value": 1 },
+        { "id": "@c4", "pubkey": "@n3", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@n4", "context": "identity", "value": 1 },
+        { "id": "@c5", "pubkey": "@n4", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@n5", "context": "identity", "value": 1 },
+        { "id": "@c6", "pubkey": "@n5", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@n6", "context": "identity", "value": 1 },
+        { "id": "@c7", "pubkey": "@n6", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:1", "context": "identity", "value": 1 },
+        { "id": "@c8", "pubkey": "@n6", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@n7", "context": "identity", "value": 1 },
+        { "id": "@c9", "pubkey": "@n7", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:2", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:1" }, "context": "identity", "now": 10, "bounds": { "maxDepth": 7 } },
+          "expect": { "connected": true, "degree": 7 }
+        },
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:1" }, "context": "identity", "now": 10, "bounds": { "maxDepth": 6 } },
+          "expect": { "connected": false, "degree": 0 }
+        },
+        {
+          "type": "trust",
+          "note": "Degree 8 is past the hard cap even when maxDepth asks for 10.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:2" }, "context": "identity", "now": 10, "bounds": { "maxDepth": 10 } },
+          "expect": { "connected": false, "degree": 0 }
+        },
+        {
+          "type": "trust",
+          "note": "Default maxDepth is 4.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@n4" }, "context": "identity", "now": 10 },
+          "expect": { "connected": true, "degree": 4 }
+        },
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@n5" }, "context": "identity", "now": 10 },
+          "expect": { "connected": false }
+        }
+      ]
+    },
+    {
+      "id": "walk-activity-window",
+      "model": "dtp-wot/1",
+      "tags": ["walk", "activity"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@e-hop", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1, "activate": 100, "expire": 200 },
+        { "id": "@e-ev", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        { "type": "trust", "note": "Before x", "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 99 }, "expect": { "connected": false } },
+        { "type": "trust", "note": "x is inclusive", "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 100 }, "expect": { "connected": true, "degree": 2 } },
+        { "type": "trust", "note": "y is inclusive", "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 200 }, "expect": { "connected": true, "degree": 2 } },
+        { "type": "trust", "note": "After y", "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 201 }, "expect": { "connected": false } }
+      ]
+    },
+    {
+      "id": "walk-neutral-is-evidence-not-hop",
+      "model": "dtp-wot/1",
+      "tags": ["walk", "neutral"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/graph.test.ts (does not connect on a closer Neutral)",
+      "records": [
+        { "id": "@e-root-alice", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@e-alice-neutral", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:9", "context": "identity", "value": 0 },
+        { "id": "@e-alice-bob", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 },
+        { "id": "@e-bob-trust", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:9", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "note": "A Neutral-only degree does not stop the walk; the farther Trust decides.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:9" }, "context": "identity", "now": 10 },
+          "expect": { "connected": true, "degree": 3, "trust": 1, "neutral": 0, "statements": [{ "eventId": "@e-bob-trust" }] }
+        }
+      ]
+    },
+    {
+      "id": "walk-neutral-beside-trust",
+      "model": "dtp-wot/1",
+      "tags": ["walk", "neutral"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@e-root-alice", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@e-root-bob", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 },
+        { "id": "@e-alice-neutral", "pubkey": "@alice", "kind": 32009, "created_at": 2, "subjectType": "i", "subject": "user:id:9", "context": "identity", "value": 0 },
+        { "id": "@e-bob-trust", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:9", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:9" }, "context": "identity", "now": 10 },
+          "expect": {
+            "connected": true, "degree": 2, "trust": 1, "neutral": 1, "resolution": "trusted",
+            "statements": [
+              { "eventId": "@e-alice-neutral", "value": 0 },
+              { "eventId": "@e-bob-trust", "value": 1 }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "walk-kinds-do-not-mix",
+      "model": "dtp-wot/1",
+      "tags": ["walk", "rating"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/index-resolver.test.ts (32009 query ignores 32014 and vice versa)",
+      "records": [
+        { "id": "@e-root-alice", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@r-alice-post", "pubkey": "@alice", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 90, "scopeRank": 2 },
+        { "id": "@r-root-alice", "pubkey": "@root", "kind": 32014, "created_at": 1, "subjectType": "p", "subject": "@bob", "value": 100, "scopeRank": 2 },
+        { "id": "@e-bob-post", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": -1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "note": "Alice's rating is not trust evidence; the rating of Bob is never a hop.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "identity", "now": 10 },
+          "expect": { "connected": false, "trust": 0, "distrust": 0 }
+        },
+        {
+          "type": "rating",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "", "now": 10 },
+          "expect": { "degree": 2, "claimCount": 1, "averageScore": 90, "claims": [{ "eventId": "@r-alice-post", "score": 90, "distance": 1 }] }
+        }
+      ]
+    }
+  ]
+}

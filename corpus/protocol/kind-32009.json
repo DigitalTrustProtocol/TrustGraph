@@ -1,0 +1,921 @@
+{
+  "cases": [
+    {
+      "id": "protocol-32009-person-trust-hint",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "hint",
+        "scope"
+      ],
+      "profile": "x.com",
+      "description": "Person trust with c=identity, s=x.com and a bare npub hint: hintPubkey is the hint, scopeRank 2.",
+      "event": {
+        "id": "5f1cc53a51b0cebea33ccc9f7a11ad042b8a944639dd87a11b0efcb49cf26c48",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "c9ba756160865ed883a0ebf2730a6b84904c0f37f121a1e8393bc99ee42a0844"
+          ],
+          [
+            "i",
+            "user:id:11348282",
+            "npub137548xmfzxnztvyzjq90scw6nueape2emf35wzznrxnemtaj0w4saqwydl"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ],
+          [
+            "s",
+            "x.com"
+          ],
+          [
+            "c",
+            "identity"
+          ]
+        ],
+        "content": "",
+        "sig": "b68ce9936e74fcaa872226ed5229aaf07905821e62aed3e942f4ce95f0e1719e30f5c015631231acd31f0cd82e08c1d6fed17938c5143969dd37caf56b9ab55f"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "record": {
+          "addressKey": "32009:799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef:c9ba756160865ed883a0ebf2730a6b84904c0f37f121a1e8393bc99ee42a0844",
+          "id": "5f1cc53a51b0cebea33ccc9f7a11ad042b8a944639dd87a11b0efcb49cf26c48",
+          "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+          "kind": 32009,
+          "created_at": 1790000000,
+          "subjectType": "i",
+          "subject": "user:id:11348282",
+          "context": "identity",
+          "value": 1,
+          "scopeRank": 2,
+          "hintPubkey": "8fa9539b6911a625b082900af861da9f33d0e559da6347085319a79dafb27bab",
+          "activate": null,
+          "expire": null,
+          "labels": []
+        }
+      }
+    },
+    {
+      "id": "protocol-32009-empty-scope-hint-ignored",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "hint",
+        "scope"
+      ],
+      "profile": "x.com",
+      "description": "Empty scope set is eligible (scopeRank 1), but the npub hint is not interpreted without s=x.com.",
+      "event": {
+        "id": "6b53ae4ef2f9fd2c7e9ed81114982c7c5a780eb2ec1633a26f83718ea3644d53",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "041a4f6749b52be48808240ed996512a945215f36c4bebf55ce165c3dc87af70"
+          ],
+          [
+            "i",
+            "user:id:11348282",
+            "npub137548xmfzxnztvyzjq90scw6nueape2emf35wzznrxnemtaj0w4saqwydl"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ],
+          [
+            "c",
+            "identity"
+          ]
+        ],
+        "content": "",
+        "sig": "b419eba22aff599d598b310d04336d859ded951773aa72fd77996f132dcca0f755ea06ef210309a635fb96a7ea02f5cf850ff18ca7fe4a3229fe446b61ffa62a"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "record": {
+          "addressKey": "32009:799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef:041a4f6749b52be48808240ed996512a945215f36c4bebf55ce165c3dc87af70",
+          "scopeRank": 1,
+          "hintPubkey": null,
+          "value": 1
+        }
+      }
+    },
+    {
+      "id": "protocol-32009-delete",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "delete"
+      ],
+      "profile": "x.com",
+      "description": "Empty v is a Delete: a valid record without a value.",
+      "event": {
+        "id": "a41efbe681affbd8771264749be041455c5117fd1cda69e2481d408c506912af",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "790a6b352182f4f7a0cf49bc90b5add72e0349fd1f8d836a44acdcd6b3fa5973"
+          ],
+          [
+            "i",
+            "post:id:2080659774136291424"
+          ],
+          [
+            "v",
+            ""
+          ],
+          [
+            "k",
+            "post:id"
+          ],
+          [
+            "s",
+            "x.com"
+          ]
+        ],
+        "content": "",
+        "sig": "cf83fc6b726f4e9e04ee6fc8e8dd87a606de47baf26ad2119f848e132fe29dcdbb559ef14924adc5b216824aec10efabbac4589a63ba821dd46836639e4ebdd0"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "record": {
+          "value": null,
+          "context": "",
+          "subject": "post:id:2080659774136291424"
+        }
+      }
+    },
+    {
+      "id": "protocol-32009-neutral",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol"
+      ],
+      "profile": "x.com",
+      "description": "Neutral (v=0) is an active value.",
+      "event": {
+        "id": "b533651313846b845743827158e07fd1ccac3f06f786a2f9f7607f5e7f25bf6c",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "23e1b9d275e755d2ec9ab1046b9d244421fe8591641ce7793675c481878c2cea"
+          ],
+          [
+            "i",
+            "post:id:2080659774136291424"
+          ],
+          [
+            "v",
+            "0"
+          ],
+          [
+            "k",
+            "post:id"
+          ]
+        ],
+        "content": "",
+        "sig": "7c1d1d100246b4d61311a24a15523f1071d56da28bb9f55478175da99423bfe20bb27047e2d4738c32b225b946f56d454291a1fe7b33a69d5a2466af45c70d33"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "record": {
+          "value": 0,
+          "scopeRank": 1
+        }
+      }
+    },
+    {
+      "id": "protocol-32009-pubkey-window",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "activity"
+      ],
+      "profile": "x.com",
+      "description": "p subject with an x / y activity window.",
+      "event": {
+        "id": "56bad25e43a1ec15bb466a5b8a44c3ee8fc751188cf0693aba308c2f04cb9279",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "e66a42eb6db4b67e5167df579c79789d16749eb84d1837ec4d181240624abb92"
+          ],
+          [
+            "p",
+            "8fa9539b6911a625b082900af861da9f33d0e559da6347085319a79dafb27bab"
+          ],
+          [
+            "v",
+            "-1"
+          ],
+          [
+            "c",
+            "identity"
+          ],
+          [
+            "x",
+            "1789999990"
+          ],
+          [
+            "y",
+            "1790000010"
+          ]
+        ],
+        "content": "",
+        "sig": "d9f709f8179b37602c804d02e948d4c10f1597b23a138f23feab24a0fea1f9953eb49196a42755e4e8a0f46decd777fc3234b1befcee9ebdfdfaa9db99281bff"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "record": {
+          "subjectType": "p",
+          "subject": "8fa9539b6911a625b082900af861da9f33d0e559da6347085319a79dafb27bab",
+          "value": -1,
+          "activate": 1789999990,
+          "expire": 1790000010,
+          "addressKey": "32009:799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef:e66a42eb6db4b67e5167df579c79789d16749eb84d1837ec4d181240624abb92"
+        }
+      }
+    },
+    {
+      "id": "protocol-32009-labels",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "labels"
+      ],
+      "profile": "x.com",
+      "description": "Labels with sanitized display hints; labels never enter d.",
+      "event": {
+        "id": "f39f806d1f3cd55119a6f905b49486fc52fc11fdb6e876d94e46338c689da230",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "c9ba756160865ed883a0ebf2730a6b84904c0f37f121a1e8393bc99ee42a0844"
+          ],
+          [
+            "i",
+            "user:id:11348282"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ],
+          [
+            "s",
+            "x.com"
+          ],
+          [
+            "c",
+            "identity"
+          ],
+          [
+            "l",
+            "reviewer",
+            "Trusted <b>reviewer</b>"
+          ],
+          [
+            "l",
+            "press"
+          ]
+        ],
+        "content": "",
+        "sig": "d8ea634142b7969d2d19e00d1495fb89beaa50a8d93f6adefe2a6be1198c963c5a8d69beb97222500369d6ca95247832e8703e5d1a456ec82059b30878f7622a"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "record": {
+          "labels": [
+            "reviewer",
+            "press"
+          ],
+          "labelHints": {
+            "reviewer": "Trusted breviewer/b"
+          },
+          "addressKey": "32009:799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef:c9ba756160865ed883a0ebf2730a6b84904c0f37f121a1e8393bc99ee42a0844"
+        }
+      }
+    },
+    {
+      "id": "protocol-32009-multi-scope-with-xcom",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "scope"
+      ],
+      "profile": "x.com",
+      "description": "A scope set that contains x.com is eligible with rank 2.",
+      "event": {
+        "id": "aacd1344024ec3cd3c7956ca198f216cd0d33dc7075704e88f0375ec711e985f",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "d853dd9e6f045634116f33d9ae5bd346cc658de9d16f7290814c82840c2eb115"
+          ],
+          [
+            "i",
+            "user:id:11348282"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ],
+          [
+            "s",
+            "example.com"
+          ],
+          [
+            "s",
+            "x.com"
+          ],
+          [
+            "c",
+            "identity"
+          ]
+        ],
+        "content": "",
+        "sig": "9492c0ac62adb824e1dc26b27897bc67e2ebdeb830a9417c75a8dfc0d5d193cfa6c7cd6382a6bad32da51fd2ec1140619511d6dd1ed6428e56b5c8bbfe6730b6"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "record": {
+          "scopeRank": 2
+        }
+      }
+    },
+    {
+      "id": "protocol-32009-bad-signature",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "signature"
+      ],
+      "profile": "x.com",
+      "description": "Signature does not verify.",
+      "event": {
+        "id": "d59ed1e9f0bdaf21baeb5acc0d2bdd5c555649a70c0cdafb6b6bd8309b988ddd",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "041a4f6749b52be48808240ed996512a945215f36c4bebf55ce165c3dc87af70"
+          ],
+          [
+            "i",
+            "user:id:11348282"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ],
+          [
+            "c",
+            "identity"
+          ]
+        ],
+        "content": "",
+        "sig": "abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32009-id-mismatch",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "signature"
+      ],
+      "profile": "x.com",
+      "description": "Content changed after signing: id no longer matches.",
+      "event": {
+        "id": "d59ed1e9f0bdaf21baeb5acc0d2bdd5c555649a70c0cdafb6b6bd8309b988ddd",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "041a4f6749b52be48808240ed996512a945215f36c4bebf55ce165c3dc87af70"
+          ],
+          [
+            "i",
+            "user:id:11348282"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ],
+          [
+            "c",
+            "identity"
+          ]
+        ],
+        "content": "tampered",
+        "sig": "d32e2449d408615428ea1887205fbedb14d3d5fd123f84cce6e806657a387383c5a5a0b557247cc0727721148640de1c7fb2bac7b03a52fb81ef5e062c13f32b"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32009-d-mismatch",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "d"
+      ],
+      "profile": "x.com",
+      "description": "d does not match subject, scope, and context.",
+      "event": {
+        "id": "fdb3191bec40370ad69c5d6e5b780d7d2e1ed5bf52370d57c296b606a186f6b6",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "8810ad581e59f2bc3928b261707a71308f7e139eb04820366dc4d5c18d980225"
+          ],
+          [
+            "i",
+            "user:id:11348282"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ],
+          [
+            "c",
+            "identity"
+          ]
+        ],
+        "content": "",
+        "sig": "83703ffccc8d516b1ce7605f8f0bdffd8fb6a189b2e97348676727b861082667ac0d714b8395d76158d0463e422645e50fd8846e500a5f6a479f3ce19335f4e5"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32009-two-subjects",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "subject"
+      ],
+      "profile": "x.com",
+      "description": "Exactly one subject tag is allowed.",
+      "event": {
+        "id": "991e9907981560f59e85bbd680d9536a367a0432caa91d4c8b72558e7a2bc2f3",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "d015e579c4ec6c94716340a08cfd19239e9ec152ce0af61eb22d10470c32b664"
+          ],
+          [
+            "i",
+            "user:id:11348282"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ],
+          [
+            "p",
+            "8fa9539b6911a625b082900af861da9f33d0e559da6347085319a79dafb27bab"
+          ]
+        ],
+        "content": "",
+        "sig": "7c37c0c3071f6922dcc6a405cb7999334a2f10f53fc3ba033617a9fc40941ea2f525da051ef6ad7245b52e8fb62004204f88e14c101523e8d7031c42c73c9894"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32009-bad-value",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "value"
+      ],
+      "profile": "x.com",
+      "description": "v must be 1, 0, -1, or empty.",
+      "event": {
+        "id": "80a2574b9f60a1d978b8427e2d96c0efab1024f42d33a36ae30170afcdbba0c9",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "d015e579c4ec6c94716340a08cfd19239e9ec152ce0af61eb22d10470c32b664"
+          ],
+          [
+            "i",
+            "user:id:11348282"
+          ],
+          [
+            "v",
+            "2"
+          ],
+          [
+            "k",
+            "user:id"
+          ]
+        ],
+        "content": "",
+        "sig": "8759905e6895043b3adaa483d18fdd4259edec26839d642e46242e7791ff910b9323d62cb2d88d5037dc5e6a7bca9cae75cc2df1bcf9be5f07a82d64dd24c92e"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32009-malformed-npub-hint",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "hint"
+      ],
+      "profile": "x.com",
+      "description": "A malformed npub hint makes the event invalid (NIP-32009 checklist item 7).",
+      "event": {
+        "id": "50fe384ca9d07cc0de993f4b05d8f3b38f726758e4ba5096c2780718085269a5",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "b1a4da4011db02632bcdec3f662e553c03c6888d27868d755e64fe57bbf07775"
+          ],
+          [
+            "i",
+            "user:id:11348282",
+            "npub1notanpub"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ],
+          [
+            "s",
+            "x.com"
+          ]
+        ],
+        "content": "",
+        "sig": "f345910a54a15aeb68b7ef113838fa6cdffbb7d95a1b554d5022b9d0b3400da9c89cfe9672b3484e2b9fc1718660add98f5e2a85f641443d0b2b6b27ecbefd83"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32009-window-order",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "activity"
+      ],
+      "profile": "x.com",
+      "description": "x must not be after y.",
+      "event": {
+        "id": "51578774d3d95825bcaa7c457a1fe11f35b320d773c5dca0bdca4b5bed2595af",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "d015e579c4ec6c94716340a08cfd19239e9ec152ce0af61eb22d10470c32b664"
+          ],
+          [
+            "i",
+            "user:id:11348282"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ],
+          [
+            "x",
+            "1790000010"
+          ],
+          [
+            "y",
+            "1790000000"
+          ]
+        ],
+        "content": "",
+        "sig": "8bce71c4dc2244ebb0819d3510e560aada43d923e7cc80f48fc71ef928df9045223f7dad58910da0bca187cb7d9d678c751113f0bfb0ee546cb448e2bd96d1cc"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32009-content-limit",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "content"
+      ],
+      "profile": "x.com",
+      "description": "content is limited to 1024 Unicode characters.",
+      "event": {
+        "id": "67507fbadbff33ee35af029037427a3f01c2d4230bdc5f5a1e62123c64ad46ce",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "d015e579c4ec6c94716340a08cfd19239e9ec152ce0af61eb22d10470c32b664"
+          ],
+          [
+            "i",
+            "user:id:11348282"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ]
+        ],
+        "content": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+        "sig": "d06cd6740fbcacef99976122217d266ec38bfffb266de91b84db7b7f8974eb9cffdab0ecf49c9f92bf58755d910eac9701f7d1721449f53b2fc54ac7fc8efba7"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32009-context-grammar",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "context"
+      ],
+      "profile": "x.com",
+      "description": "c must be canonical lowercase segments.",
+      "event": {
+        "id": "18bc95fba977c717dfc321ae48702936ddc51613bbe3588eab5bcf916603a238",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "0f8e68b4d45ea1ccf1dc73d3b13bb82da998b13dd78a2c799967a52e4dd298a4"
+          ],
+          [
+            "i",
+            "user:id:11348282"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ],
+          [
+            "c",
+            "Identity"
+          ]
+        ],
+        "content": "",
+        "sig": "5d4dcc9e1c0829c7c400f36300b08bff0f44660ce92d93d79d9783b3bbe2f34bc4a93d9eaebf805acb88abd7850d27e4cb28eb52a99d78fb10e2a664faf07f98"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32009-k-mismatch",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "subject"
+      ],
+      "profile": "x.com",
+      "description": "k must be the class prefix of the i subject.",
+      "event": {
+        "id": "4b036c59dfdaa8f46c3513d26d4f79785cc43a4a16f985437674c3281552bca8",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "d015e579c4ec6c94716340a08cfd19239e9ec152ce0af61eb22d10470c32b664"
+          ],
+          [
+            "i",
+            "user:id:11348282"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "post:id"
+          ]
+        ],
+        "content": "",
+        "sig": "c413f3e1cdc53f61292fce8bc8f7d1b39f9fbe0049fb1a304e7cbdfe87551dceb90b067434ec51c2a732e784fd24ddcdd6a9257670c8ab59a6b0a9b5faddfc76"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32009-ext-twitter-subject",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "subject"
+      ],
+      "profile": "x.com",
+      "description": "Platform names never appear in i subjects.",
+      "event": {
+        "id": "859368addaed86e25ef78adfd0de840ce9917e656c309514d6a8d188d8a49f79",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "c1729545101f8500622acb24e368274e23e66f2abd39f21bc2a5a91fd8c999f6"
+          ],
+          [
+            "i",
+            "ext:twitter_id:1"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "ext"
+          ]
+        ],
+        "content": "",
+        "sig": "b49cabd563afc49b0a34dfdb89abb558e1edcc6e7072d193a23be66851b52b4a0fa6e58755b842e6ab7f1b6ebb872864d6a7cee53cc2d53de319a1ef9cc0d827"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32009-ineligible-scope",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "scope"
+      ],
+      "profile": "x.com",
+      "description": "Scope set without x.com is ineligible for profile x.com: blocked.",
+      "event": {
+        "id": "4d98462f2477ba9733455e8983f06a6264002ab60317fd3c2f705c911084a755",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32009,
+        "tags": [
+          [
+            "d",
+            "5151fdd85aa8681cf0b500b84e93f700ac28d94c2d611e269e5c822cf6d918be"
+          ],
+          [
+            "i",
+            "user:id:11348282"
+          ],
+          [
+            "v",
+            "1"
+          ],
+          [
+            "k",
+            "user:id"
+          ],
+          [
+            "s",
+            "example.com"
+          ]
+        ],
+        "content": "",
+        "sig": "1dec0e3664d3d096a09a520c7cc85f4688250ddf479dffc93e6c194da1748e44d756c8a0060a926b3e9f95f4812526ac2b2142c352ea262691769580a2f8dbbe"
+      },
+      "expect": {
+        "valid": true,
+        "prefix": "blocked",
+        "eligible": false
+      }
+    }
+  ]
+}

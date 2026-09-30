@@ -1,0 +1,331 @@
+{
+  "cases": [
+    {
+      "id": "bind-01-own-bio-claimed",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "own-evidence"],
+      "profile": "x.com",
+      "description": "identity-binding.md §5 situation 1: own Bio shows P; P claims X. Bound in both modes; today's bindIdentity agrees.",
+      "records": [
+        { "id": "@b1-r-x", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2 },
+        { "id": "@b1-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 }
+      ],
+      "claims": [{ "pubkey": "@p", "twitterId": "1001" }],
+      "ownEvidence": [{ "root": "@root", "iKey": "user:id:1001", "pubkey": "@p", "source": "bio" }],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
+          "expect": { "connected": true, "degree": 2 }
+        }
+      ]
+    },
+    {
+      "id": "bind-02-own-bio-unclaimed",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "own-evidence", "gap:G8"],
+      "profile": "x.com",
+      "description": "Situation 2: own Bio shows P; P has no 10011. Strict leaves X unbound; today's heap binds regardless of mode.",
+      "records": [
+        { "id": "@b2-r-x", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2 },
+        { "id": "@b2-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 }
+      ],
+      "ownEvidence": [{ "root": "@root", "iKey": "user:id:1001", "pubkey": "@p", "source": "bio" }],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
+          "expectModel": { "lenient": { "connected": true, "degree": 2 }, "strict": { "connected": false, "degree": 0 } },
+          "expectCurrent": { "connected": true, "degree": 2 }
+        }
+      ]
+    },
+    {
+      "id": "bind-03-own-bio-beats-friend-hint",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "own-evidence", "witness", "gap:G8"],
+      "profile": "x.com",
+      "description": "Situation 3: own Bio shows P (no claim); a friend's hint says Q and Q claims X. Lenient binds P; strict is unbound (the Bio outranks hints, P is unconfirmed).",
+      "records": [
+        { "id": "@b3-r-x", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2 },
+        { "id": "@b3-r-carol", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 1 },
+        { "id": "@b3-carol-x", "pubkey": "@carol", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2, "hintPubkey": "@q" },
+        { "id": "@b3-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 },
+        { "id": "@b3-q-t2", "pubkey": "@q", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target2", "context": "identity", "value": 1 }
+      ],
+      "claims": [{ "pubkey": "@q", "twitterId": "1001" }],
+      "ownEvidence": [{ "root": "@root", "iKey": "user:id:1001", "pubkey": "@p", "source": "bio" }],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
+          "expectModel": { "lenient": { "connected": true, "degree": 2 }, "strict": { "connected": false } },
+          "expectCurrent": { "connected": true, "degree": 2 }
+        },
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target2" }, "context": "identity", "now": 100 },
+          "expectModel": { "connected": false },
+          "expectCurrent": { "connected": false }
+        }
+      ]
+    },
+    {
+      "id": "bind-04-own-hint-claimed",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "witness", "gap:G8"],
+      "profile": "x.com",
+      "description": "Situation 4: the root's own 32009 hint says P; P claims X. Bound in both modes. Today's heap ignores hints, so X stays terminal.",
+      "records": [
+        { "id": "@b4-r-x", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2, "hintPubkey": "@p" },
+        { "id": "@b4-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 }
+      ],
+      "claims": [{ "pubkey": "@p", "twitterId": "1001" }],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
+          "expectModel": { "connected": true, "degree": 2 },
+          "expectCurrent": { "connected": false, "degree": 0 }
+        }
+      ]
+    },
+    {
+      "id": "bind-05-own-hint-unclaimed",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "witness", "gap:G8"],
+      "profile": "x.com",
+      "description": "Situation 5: own hint says P; P has no 10011.",
+      "records": [
+        { "id": "@b5-r-x", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2, "hintPubkey": "@p" },
+        { "id": "@b5-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
+          "expectModel": { "lenient": { "connected": true, "degree": 2 }, "strict": { "connected": false } },
+          "expectCurrent": { "connected": false }
+        }
+      ]
+    },
+    {
+      "id": "bind-06-wot-witness-claimed",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "witness", "gap:G8"],
+      "profile": "x.com",
+      "description": "Situation 6: the nearest WoT witness (Carol, level 1) says P; P claims X. Carol's statement is both witness and hop: X = P at level 2, target at degree 3.",
+      "records": [
+        { "id": "@b6-r-carol", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 1 },
+        { "id": "@b6-carol-x", "pubkey": "@carol", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2, "hintPubkey": "@p" },
+        { "id": "@b6-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 }
+      ],
+      "claims": [{ "pubkey": "@p", "twitterId": "1001" }],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
+          "expectModel": { "connected": true, "degree": 3 },
+          "expectCurrent": { "connected": false }
+        },
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "note": "Querying the X account: evidence addressed to user:id:1001 at degree 2.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:1001" }, "context": "identity", "now": 100 },
+          "expectModel": { "connected": true, "degree": 2, "trust": 1 },
+          "expectCurrent": { "connected": true, "degree": 2, "trust": 1 }
+        }
+      ]
+    },
+    {
+      "id": "bind-07-strict-skips-false-nearer-hint",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "witness", "gap:G8"],
+      "profile": "x.com",
+      "description": "Situation 7: the nearest witness (Carol, level 1) says P without a claim; a farther witness (Erin, level 2) says Q, and Q claims X. Lenient binds P; strict binds Q.",
+      "records": [
+        { "id": "@b7-r-carol", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 1 },
+        { "id": "@b7-carol-erin", "pubkey": "@carol", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@erin", "context": "identity", "value": 1 },
+        { "id": "@b7-carol-x", "pubkey": "@carol", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2, "hintPubkey": "@p" },
+        { "id": "@b7-erin-x", "pubkey": "@erin", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2, "hintPubkey": "@q" },
+        { "id": "@b7-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 },
+        { "id": "@b7-q-t2", "pubkey": "@q", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target2", "context": "identity", "value": 1 }
+      ],
+      "claims": [{ "pubkey": "@q", "twitterId": "1001" }],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
+          "expectModel": { "lenient": { "connected": true, "degree": 3 }, "strict": { "connected": false } },
+          "expectCurrent": { "connected": false }
+        },
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target2" }, "context": "identity", "now": 100 },
+          "expectModel": { "lenient": { "connected": false }, "strict": { "connected": true, "degree": 4 } },
+          "expectCurrent": { "connected": false }
+        }
+      ]
+    },
+    {
+      "id": "bind-09-false-hint",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "witness", "gap:G8"],
+      "profile": "x.com",
+      "description": "Situation 9: the witness says P, but P's 10011 names a different X account.",
+      "records": [
+        { "id": "@b9-r-carol", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 1 },
+        { "id": "@b9-carol-x", "pubkey": "@carol", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2, "hintPubkey": "@p" },
+        { "id": "@b9-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 }
+      ],
+      "claims": [{ "pubkey": "@p", "twitterId": "2002" }],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
+          "expectModel": { "lenient": { "connected": true, "degree": 3 }, "strict": { "connected": false } },
+          "expectCurrent": { "connected": false }
+        }
+      ]
+    },
+    {
+      "id": "bind-10-outside-witness-never-binds",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "witness"],
+      "profile": "x.com",
+      "description": "Situation 10: only an author outside the root's web of trust hints P. Unbound in both modes (and today).",
+      "records": [
+        { "id": "@b10-r-x", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2 },
+        { "id": "@b10-stranger-x", "pubkey": "@stranger", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2, "hintPubkey": "@p" },
+        { "id": "@b10-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 }
+      ],
+      "claims": [{ "pubkey": "@p", "twitterId": "1001" }],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
+          "expect": { "connected": false, "degree": 0 }
+        }
+      ]
+    },
+    {
+      "id": "bind-11-claim-alone-never-binds",
+      "model": "dtp-wot/1",
+      "tags": ["bind"],
+      "profile": "x.com",
+      "description": "Situation 11: no witness at all; P's 10011 claims X. Unbound in both modes.",
+      "records": [
+        { "id": "@b11-r-x", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2 },
+        { "id": "@b11-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 }
+      ],
+      "claims": [{ "pubkey": "@p", "twitterId": "1001" }],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
+          "expect": { "connected": false }
+        }
+      ]
+    },
+    {
+      "id": "bind-12-distrust-is-not-a-witness",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "witness"],
+      "profile": "x.com",
+      "description": "Situation 12: the hint sits on a v=-1 statement. Not a witness; X stays unbound, so the root's trust in X is terminal.",
+      "records": [
+        { "id": "@b12-r-x", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2 },
+        { "id": "@b12-r-carol", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 1 },
+        { "id": "@b12-carol-x", "pubkey": "@carol", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": -1, "scopeRank": 2, "hintPubkey": "@p" },
+        { "id": "@b12-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 }
+      ],
+      "claims": [{ "pubkey": "@p", "twitterId": "1001" }],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
+          "expect": { "connected": false }
+        }
+      ]
+    },
+    {
+      "id": "bind-13-unwitnessed-claimant-never-candidate",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "witness", "gap:G8"],
+      "profile": "x.com",
+      "description": "Situation 13: the witness says P; Q also claims X but nobody witnessed Q. Lenient binds P; strict: P has no claim, so unbound. Q is never a candidate.",
+      "records": [
+        { "id": "@b13-r-carol", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 1 },
+        { "id": "@b13-carol-x", "pubkey": "@carol", "kind": 32009, "created_at": 10, "subjectType": "i", "subject": "user:id:1001", "context": "identity", "value": 1, "scopeRank": 2, "hintPubkey": "@p" },
+        { "id": "@b13-p-t", "pubkey": "@p", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target", "context": "identity", "value": 1 },
+        { "id": "@b13-q-t2", "pubkey": "@q", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@target2", "context": "identity", "value": 1 }
+      ],
+      "claims": [{ "pubkey": "@q", "twitterId": "1001" }],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target" }, "context": "identity", "now": 100 },
+          "expectModel": { "lenient": { "connected": true, "degree": 3 }, "strict": { "connected": false } },
+          "expectCurrent": { "connected": false }
+        },
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@target2" }, "context": "identity", "now": 100 },
+          "expect": { "connected": false }
+        }
+      ]
+    },
+    {
+      "id": "bind-bound-distrust-is-no-hop",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "own-evidence"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/bind-identity.test.ts (does not walk a distrusted user:id as a trusted hop)",
+      "records": [
+        { "id": "@bd-r-neve", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:16224", "context": "identity", "value": -1, "scopeRank": 2 },
+        { "id": "@bd-neve-archive", "pubkey": "@neve", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:999", "context": "identity", "value": 1, "scopeRank": 2 }
+      ],
+      "claims": [{ "pubkey": "@neve", "twitterId": "16224" }, { "pubkey": "@archive", "twitterId": "999" }],
+      "ownEvidence": [
+        { "root": "@root", "iKey": "user:id:16224", "pubkey": "@neve", "source": "bio" },
+        { "root": "@root", "iKey": "user:id:999", "pubkey": "@archive", "source": "bio" }
+      ],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:999" }, "context": "identity", "now": 10 },
+          "expect": { "connected": false }
+        },
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:16224" }, "context": "identity", "now": 10 },
+          "expect": { "connected": true, "degree": 1, "distrust": 1, "resolution": "distrusted", "direct": { "eventId": "@bd-r-neve", "value": -1 } }
+        }
+      ]
+    },
+    {
+      "id": "bind-bound-trust-walks-as-pubkey-hop",
+      "model": "dtp-wot/1",
+      "tags": ["bind", "own-evidence"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/bind-identity.test.ts (walks bound user:id trust as pubkey hops)",
+      "records": [
+        { "id": "@bw-r-neve", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:16224", "context": "identity", "value": 1, "scopeRank": 2 },
+        { "id": "@bw-neve-archive", "pubkey": "@neve", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:999", "context": "identity", "value": 1, "scopeRank": 2 }
+      ],
+      "claims": [{ "pubkey": "@neve", "twitterId": "16224" }, { "pubkey": "@archive", "twitterId": "999" }],
+      "ownEvidence": [
+        { "root": "@root", "iKey": "user:id:16224", "pubkey": "@neve", "source": "bio" },
+        { "root": "@root", "iKey": "user:id:999", "pubkey": "@archive", "source": "bio" }
+      ],
+      "queries": [
+        {
+          "type": "trust", "modes": ["lenient", "strict"],
+          "note": "Querying the pubkey of the bound account finds the statement addressed to user:id:999.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@archive" }, "context": "identity", "now": 10 },
+          "expect": { "connected": true, "degree": 2, "trust": 1, "statements": [{ "eventId": "@bw-neve-archive", "author": "@neve" }] }
+        }
+      ]
+    }
+  ]
+}

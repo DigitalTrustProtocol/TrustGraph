@@ -1,0 +1,116 @@
+{
+  "cases": [
+    {
+      "id": "nip09-address-deletion-sets-floor",
+      "model": "dtp-wot/1",
+      "tags": ["nip09", "slot"],
+      "profile": "x.com",
+      "description": "wot-model.md §2.4: an `a` deletion by the slot author clears the slot up to its created_at and sets the floor there. Records at or below the floor are discarded; a later record is accepted.",
+      "ops": [
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@d-r1", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } },
+        { "op": "delete", "author": "@root", "created_at": 20, "addressKey": "32009:@root:slot-a" },
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@d-r1", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } },
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@d-r2", "pubkey": "@root", "kind": 32009, "created_at": 20, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 100 },
+          "expect": { "connected": false, "statements": [] }
+        }
+      ]
+    },
+    {
+      "id": "nip09-address-deletion-then-newer",
+      "model": "dtp-wot/1",
+      "tags": ["nip09", "slot"],
+      "profile": "x.com",
+      "ops": [
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@d-r1", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } },
+        { "op": "delete", "author": "@root", "created_at": 20, "addressKey": "32009:@root:slot-a" },
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@d-r3", "pubkey": "@root", "kind": 32009, "created_at": 25, "subjectType": "p", "subject": "@bob", "context": "identity", "value": -1 } }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 100 },
+          "expect": { "connected": true, "distrust": 1, "direct": { "eventId": "@d-r3" } }
+        }
+      ]
+    },
+    {
+      "id": "nip09-event-deletion-floor-is-event-time",
+      "model": "dtp-wot/1",
+      "tags": ["nip09", "slot"],
+      "profile": "x.com",
+      "description": "An `e` deletion removes the named winner; the floor is the deleted event's created_at, so the same event and older ones stay out but a newer one is accepted.",
+      "ops": [
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@e-r1", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } },
+        { "op": "delete", "author": "@root", "created_at": 50, "eventId": "@e-r1" },
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@e-r1", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } },
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@e-r0", "pubkey": "@root", "kind": 32009, "created_at": 5, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 100 },
+          "expect": { "connected": false }
+        }
+      ]
+    },
+    {
+      "id": "nip09-event-deletion-then-newer",
+      "model": "dtp-wot/1",
+      "tags": ["nip09", "slot"],
+      "profile": "x.com",
+      "ops": [
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@e-r1", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } },
+        { "op": "delete", "author": "@root", "created_at": 50, "eventId": "@e-r1" },
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@e-r2", "pubkey": "@root", "kind": 32009, "created_at": 11, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 0 } }
+      ],
+      "queries": [
+        {
+          "type": "lookup-incoming",
+          "input": { "keys": ["p:@bob"], "context": "identity", "now": 100 },
+          "expect": { "items": [{ "eventId": "@e-r2", "value": 0 }] }
+        }
+      ]
+    },
+    {
+      "id": "nip09-other-author-cannot-delete",
+      "model": "dtp-wot/1",
+      "tags": ["nip09"],
+      "profile": "x.com",
+      "ops": [
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@o-r1", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } },
+        { "op": "delete", "author": "@mallory", "created_at": 50, "eventId": "@o-r1" },
+        { "op": "delete", "author": "@mallory", "created_at": 50, "addressKey": "32009:@root:slot-a" }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 100 },
+          "expect": { "connected": true, "trust": 1 }
+        }
+      ]
+    },
+    {
+      "id": "nip09-address-deletion-cannot-reach-forward",
+      "model": "dtp-wot/1",
+      "tags": ["nip09", "slot"],
+      "profile": "x.com",
+      "description": "A winner newer than the `a` deletion stays; the floor still keeps older records out.",
+      "ops": [
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@f-r1", "pubkey": "@root", "kind": 32009, "created_at": 30, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } },
+        { "op": "delete", "author": "@root", "created_at": 20, "addressKey": "32009:@root:slot-a" }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 100 },
+          "expect": { "connected": true, "direct": { "eventId": "@f-r1" } }
+        }
+      ]
+    }
+  ]
+}

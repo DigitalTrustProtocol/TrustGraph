@@ -1,0 +1,80 @@
+{
+  "cases": [
+    {
+      "id": "neighborhood-out-and-in",
+      "model": "dtp-wot/1",
+      "tags": ["neighborhood", "lookup"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/graph.test.ts (neighborhood)",
+      "records": [
+        { "id": "@n-t1", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 },
+        { "id": "@n-d1", "pubkey": "@alice", "kind": 32009, "created_at": 2, "subjectType": "i", "subject": "post:id:42", "context": "identity", "value": -1 },
+        { "id": "@n-other", "pubkey": "@bob", "kind": 32009, "created_at": 3, "subjectType": "i", "subject": "post:id:42", "context": "identity", "value": 1 },
+        { "id": "@n-neutral", "pubkey": "@alice", "kind": 32009, "created_at": 4, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 0 }
+      ],
+      "queries": [
+        {
+          "type": "neighborhood",
+          "input": { "centerId": "p:@alice", "direction": "out", "valueFilter": "both", "context": "identity", "now": 10 },
+          "expect": {
+            "center": "p:@alice", "truncated": false,
+            "nodes": [
+              { "subject": "p:@alice", "depth": 0 },
+              { "subject": "p:@bob", "depth": 1 },
+              { "subject": "p:@carol", "depth": 1 },
+              { "subject": "i:post:id:42", "depth": 1 }
+            ],
+            "edges": [
+              { "eventId": "@n-t1", "from": "p:@alice", "to": "p:@bob", "value": 1 },
+              { "eventId": "@n-d1", "from": "p:@alice", "to": "i:post:id:42", "value": -1 },
+              { "eventId": "@n-neutral", "from": "p:@alice", "to": "p:@carol", "value": 0 }
+            ]
+          }
+        },
+        {
+          "type": "neighborhood",
+          "input": { "centerId": "i:post:id:42", "direction": "in", "valueFilter": "distrust", "context": "identity", "now": 10 },
+          "expect": { "center": "i:post:id:42", "edges": [{ "eventId": "@n-d1", "from": "p:@alice", "value": -1 }] }
+        },
+        {
+          "type": "neighborhood",
+          "input": { "centerId": "p:@alice", "direction": "out", "context": "identity", "limit": 1, "now": 10 },
+          "expect": { "truncated": true }
+        },
+        {
+          "type": "neighborhood",
+          "note": "Unknown center: empty result.",
+          "input": { "centerId": "p:@nobody", "now": 10 },
+          "expect": { "center": null, "nodes": [], "edges": [] }
+        }
+      ]
+    },
+    {
+      "id": "neighborhood-post-rating-arrows",
+      "model": "dtp-wot/1",
+      "tags": ["neighborhood", "rating"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@nr-root-alice", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "value": 1 },
+        { "id": "@nr-seed-post", "pubkey": "@seed", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:99", "value": 1 },
+        { "id": "@nr-rate-alice", "pubkey": "@alice", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:99", "value": 80, "labels": ["genuine"], "scopeRank": 2 },
+        { "id": "@nr-rate-root", "pubkey": "@root", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:99", "value": 20, "labels": ["misleading"], "scopeRank": 2 }
+      ],
+      "queries": [
+        {
+          "type": "neighborhood",
+          "note": "Ratings draw as display polarity: score >= 50 is 1, else -1. Never hops.",
+          "input": { "centerId": "i:post:id:99", "direction": "in", "valueFilter": "both", "now": 10 },
+          "expect": {
+            "center": "i:post:id:99",
+            "edges": [
+              { "eventId": "@nr-seed-post", "from": "p:@seed", "to": "i:post:id:99", "value": 1 },
+              { "eventId": "@nr-rate-alice", "from": "p:@alice", "to": "i:post:id:99", "value": 1 },
+              { "eventId": "@nr-rate-root", "from": "p:@root", "to": "i:post:id:99", "value": -1 }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

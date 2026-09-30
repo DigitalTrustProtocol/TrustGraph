@@ -1,0 +1,93 @@
+{
+  "cases": [
+    {
+      "id": "frontier-positive-identity-chain",
+      "model": "dtp-wot/1",
+      "tags": ["frontier"],
+      "profile": "x.com",
+      "description": "wot-model.md §8 sync frontier: active value-1 statements in Chain(32009, identity), level by level, sorted, capped. Ignores the hop threshold.",
+      "source": "AttentionX GraphManager.positiveAuthorFrontier",
+      "records": [
+        { "id": "@f1", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@f2", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "value": 1 },
+        { "id": "@f3", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "context": "identity", "value": -1 },
+        { "id": "@f4", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@dave", "context": "identity", "value": 1 },
+        { "id": "@f5", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@erin", "context": "identity", "value": 1, "expire": 5 },
+        { "id": "@f6", "pubkey": "@dave", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@frank", "context": "identity", "value": 1 },
+        { "id": "@f7", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "context": "other", "value": 1 },
+        { "id": "@f8", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@frank", "context": "identity", "value": 0 }
+      ],
+      "queries": [
+        {
+          "type": "frontier",
+          "input": { "roots": ["@root"], "maxDepth": 3, "maxAuthorsPerLevel": 50, "maxTotalAuthors": 150, "now": 10 },
+          "expect": {
+            "authors": [
+              { "pubkey": "@root", "depth": 0 },
+              { "pubkey": "@alice", "depth": 1, "via": "@root" },
+              { "pubkey": "@bob", "depth": 1, "via": "@root" },
+              { "pubkey": "@dave", "depth": 2, "via": "@alice" },
+              { "pubkey": "@frank", "depth": 3, "via": "@dave" }
+            ],
+            "reasons": []
+          }
+        },
+        {
+          "type": "frontier",
+          "input": { "roots": ["@root"], "maxDepth": 1, "maxAuthorsPerLevel": 50, "maxTotalAuthors": 150, "now": 10 },
+          "expect": { "authors": [{ "pubkey": "@root" }, { "pubkey": "@alice" }, { "pubkey": "@bob" }], "reasons": ["maxDepth"] }
+        },
+        {
+          "type": "frontier",
+          "note": "Sorted children at level 1 are alice (2bd8…) then bob (81b6…); the per-level cap keeps alice.",
+          "input": { "roots": ["@root"], "maxDepth": 3, "maxAuthorsPerLevel": 1, "maxTotalAuthors": 150, "now": 10 },
+          "expect": {
+            "authors": [{ "pubkey": "@root" }, { "pubkey": "@alice" }, { "pubkey": "@dave" }, { "pubkey": "@frank" }],
+            "reasons": ["maxAuthorsPerLevel"]
+          }
+        },
+        {
+          "type": "frontier",
+          "input": { "roots": ["@root"], "maxDepth": 3, "maxAuthorsPerLevel": 50, "maxTotalAuthors": 2, "now": 10 },
+          "expect": { "authors": [{ "pubkey": "@root" }, { "pubkey": "@alice" }], "reasons": ["maxTotalAuthors"] }
+        },
+        {
+          "type": "frontier",
+          "note": "Before Erin's statement expires she is reached too.",
+          "input": { "roots": ["@root"], "maxDepth": 3, "maxAuthorsPerLevel": 50, "maxTotalAuthors": 150, "now": 4 },
+          "expect": {
+            "authors": [
+              { "pubkey": "@root", "depth": 0 },
+              { "pubkey": "@alice", "depth": 1 },
+              { "pubkey": "@bob", "depth": 1 },
+              { "pubkey": "@dave", "depth": 2 },
+              { "pubkey": "@erin", "depth": 2, "via": "@bob" },
+              { "pubkey": "@frank", "depth": 3 }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "frontier-multiple-roots",
+      "model": "dtp-wot/1",
+      "tags": ["frontier"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@g1", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@g2", "pubkey": "@erin", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@root", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "frontier",
+          "note": "Roots are deduplicated and all start at depth 0; a root reached from another root stays at depth 0.",
+          "input": { "roots": ["@root", "@erin", "@root"], "maxDepth": 2, "maxAuthorsPerLevel": 50, "maxTotalAuthors": 150, "now": 10 },
+          "expect": {
+            "authors": [{ "pubkey": "@root", "depth": 0 }, { "pubkey": "@erin", "depth": 0 }, { "pubkey": "@alice", "depth": 1, "via": "@root" }],
+            "reasons": []
+          }
+        }
+      ]
+    }
+  ]
+}

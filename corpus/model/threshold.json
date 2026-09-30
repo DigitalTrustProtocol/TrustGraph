@@ -1,0 +1,107 @@
+{
+  "cases": [
+    {
+      "id": "threshold-mixed-hop",
+      "model": "dtp-wot/1",
+      "tags": ["walk", "threshold"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/follow-trust-threshold.test.ts",
+      "description": "Carol is reached at level 2 with one trust and one distrust (50 %). She is a hop only when the threshold is at most 50.",
+      "records": [
+        { "id": "@t-root-alice", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@t-root-bob", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 },
+        { "id": "@t-alice-carol", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 1 },
+        { "id": "@t-bob-carol", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "context": "identity", "value": -1 },
+        { "id": "@t-carol-x", "pubkey": "@carol", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:500", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:500" }, "context": "identity", "now": 10 },
+          "expect": { "connected": false, "degree": 0, "followTrustThreshold": 75 }
+        },
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:500" }, "context": "identity", "now": 10, "followTrustThreshold": 50, "followTrustRed": 25 },
+          "expect": { "connected": true, "degree": 3, "trust": 1, "statements": [{ "eventId": "@t-carol-x", "author": "@carol", "distance": 2 }] }
+        },
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:500" }, "context": "identity", "now": 10, "followTrustThreshold": 51 },
+          "expect": { "connected": false }
+        },
+        {
+          "type": "trust",
+          "note": "Carol's own score: evidence from both level-1 authors.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@carol" }, "context": "identity", "now": 10 },
+          "expect": { "connected": true, "degree": 2, "trust": 1, "distrust": 1, "resolution": "mixed" }
+        }
+      ]
+    },
+    {
+      "id": "threshold-clamps",
+      "model": "dtp-wot/1",
+      "tags": ["threshold", "band"],
+      "profile": "x.com",
+      "description": "Green is clamped to 0–100 (default 75); red is clamped to 0–green (default 25).",
+      "records": [
+        { "id": "@t-root-alice", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@alice" }, "context": "identity", "now": 10, "followTrustThreshold": 150, "followTrustRed": 120 },
+          "expect": { "followTrustThreshold": 100, "followTrustRed": 100, "resolution": "trusted" }
+        },
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@alice" }, "context": "identity", "now": 10, "followTrustThreshold": 40, "followTrustRed": 60 },
+          "expect": { "followTrustThreshold": 40, "followTrustRed": 40 }
+        }
+      ]
+    },
+    {
+      "id": "threshold-neutral-pins-level",
+      "model": "dtp-wot/1",
+      "tags": ["walk", "neutral", "threshold"],
+      "profile": "x.com",
+      "description": "The root's Neutral about Carol gives Carol level 1 without making her a hop; Alice's later Trust at level 2 cannot lift her, so Carol's statements never count.",
+      "records": [
+        { "id": "@t-root-alice", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@t-root-carol", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 0 },
+        { "id": "@t-alice-carol", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 1 },
+        { "id": "@t-carol-x", "pubkey": "@carol", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:600", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:600" }, "context": "identity", "now": 10, "followTrustThreshold": 1 },
+          "expect": { "connected": false, "trust": 0 }
+        }
+      ]
+    },
+    {
+      "id": "threshold-distrusted-hop-blocked",
+      "model": "dtp-wot/1",
+      "tags": ["walk", "threshold"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/index-resolver.test.ts (only trusted identities speak)",
+      "records": [
+        { "id": "@t-root-a", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@t-root-b", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 },
+        { "id": "@t-root-foe", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@foe", "context": "identity", "value": -1 },
+        { "id": "@t-a-post", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:1", "value": 1 },
+        { "id": "@t-b-post", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:1", "value": 1 },
+        { "id": "@t-foe-post", "pubkey": "@foe", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:1", "value": -1 },
+        { "id": "@t-stranger-post", "pubkey": "@stranger", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:1", "value": -1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:1" }, "context": "identity", "now": 10, "followTrustThreshold": 1 },
+          "expect": { "connected": true, "degree": 2, "trust": 2, "distrust": 0, "sourceEventIds": ["@t-a-post", "@t-b-post"] }
+        }
+      ]
+    }
+  ]
+}

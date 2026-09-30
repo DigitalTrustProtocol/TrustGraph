@@ -1,0 +1,228 @@
+{
+  "cases": [
+    {
+      "id": "rating-own-rating-decides",
+      "model": "dtp-wot/1",
+      "tags": ["rating"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/ratings.test.ts",
+      "records": [
+        { "id": "@t1", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "value": 1 },
+        { "id": "@t2", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "value": -1 },
+        { "id": "@r-root", "pubkey": "@root", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 80, "scopeRank": 2 },
+        { "id": "@r-alice", "pubkey": "@alice", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 0, "scopeRank": 2 },
+        { "id": "@r-bob", "pubkey": "@bob", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 100, "scopeRank": 2 }
+      ],
+      "queries": [
+        {
+          "type": "rating",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "now": 10 },
+          "expect": {
+            "degree": 1, "claimCount": 1, "averageScore": 80,
+            "claims": [{ "eventId": "@r-root", "author": "@root", "score": 80, "distance": 0 }],
+            "own": { "eventId": "@r-root", "score": 80 },
+            "sourceEventIds": ["@r-root"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "rating-identity-hop-to-empty-context",
+      "model": "dtp-wot/1",
+      "tags": ["rating", "context"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@t1", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@r-alice", "pubkey": "@alice", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 40, "scopeRank": 2 }
+      ],
+      "queries": [
+        {
+          "type": "rating",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "", "now": 10 },
+          "expect": { "degree": 2, "claimCount": 1, "averageScore": 40, "own": null, "claims": [{ "author": "@alice", "distance": 1 }] }
+        }
+      ]
+    },
+    {
+      "id": "rating-nearest-degree-only",
+      "model": "dtp-wot/1",
+      "tags": ["rating"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@t1", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "value": 1 },
+        { "id": "@t2", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "value": 1 },
+        { "id": "@r-alice", "pubkey": "@alice", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 40, "scopeRank": 2 },
+        { "id": "@r-carol", "pubkey": "@carol", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 100, "scopeRank": 2 }
+      ],
+      "queries": [
+        {
+          "type": "rating",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "now": 10 },
+          "expect": { "degree": 2, "claimCount": 1, "averageScore": 40 }
+        }
+      ]
+    },
+    {
+      "id": "rating-average-includes-zero-excludes-distrusted",
+      "model": "dtp-wot/1",
+      "tags": ["rating", "threshold"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@t1", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "value": 1 },
+        { "id": "@t2", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "value": 1 },
+        { "id": "@t3", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "value": 1 },
+        { "id": "@t4", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@dave", "value": -1 },
+        { "id": "@r-alice", "pubkey": "@alice", "kind": 32014, "created_at": 4, "subjectType": "i", "subject": "post:id:42", "value": 80, "scopeRank": 2 },
+        { "id": "@r-bob", "pubkey": "@bob", "kind": 32014, "created_at": 3, "subjectType": "i", "subject": "post:id:42", "value": 40, "scopeRank": 2 },
+        { "id": "@r-carol", "pubkey": "@carol", "kind": 32014, "created_at": 2, "subjectType": "i", "subject": "post:id:42", "value": 0, "scopeRank": 2 },
+        { "id": "@r-dave", "pubkey": "@dave", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 100, "scopeRank": 2 }
+      ],
+      "queries": [
+        {
+          "type": "rating",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "now": 10 },
+          "expect": {
+            "degree": 2, "claimCount": 3, "averageScore": 40,
+            "claims": [{ "eventId": "@r-alice" }, { "eventId": "@r-bob" }, { "eventId": "@r-carol" }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "rating-fractional-average",
+      "model": "dtp-wot/1",
+      "tags": ["rating"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@t1", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "value": 1 },
+        { "id": "@t2", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "value": 1 },
+        { "id": "@t3", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "value": 1 },
+        { "id": "@r-alice", "pubkey": "@alice", "kind": 32014, "created_at": 3, "subjectType": "i", "subject": "post:id:43", "value": 33.3, "scopeRank": 2 },
+        { "id": "@r-bob", "pubkey": "@bob", "kind": 32014, "created_at": 2, "subjectType": "i", "subject": "post:id:43", "value": 66.7, "scopeRank": 2 },
+        { "id": "@r-carol", "pubkey": "@carol", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:43", "value": 12.5, "scopeRank": 2 }
+      ],
+      "queries": [
+        {
+          "type": "rating",
+          "note": "Mean compared with absolute tolerance 1e-9.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:43" }, "now": 10 },
+          "expect": { "claimCount": 3, "averageScore": 37.5 }
+        }
+      ]
+    },
+    {
+      "id": "rating-label-filter-no-farther-degree",
+      "model": "dtp-wot/1",
+      "tags": ["rating", "labels"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@t1", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "value": 1 },
+        { "id": "@t2", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "value": 1 },
+        { "id": "@genuine", "pubkey": "@alice", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 100, "labels": ["genuine"], "labelHints": { "genuine": "Looks like a real person" }, "scopeRank": 2 },
+        { "id": "@spam", "pubkey": "@carol", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 0, "labels": ["spam"], "scopeRank": 2 }
+      ],
+      "queries": [
+        {
+          "type": "rating",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "now": 10 },
+          "expect": { "claimCount": 1, "degree": 2, "claims": [{ "eventId": "@genuine", "labels": ["genuine"], "labelHints": { "genuine": "Looks like a real person" } }] }
+        },
+        {
+          "type": "rating",
+          "note": "The label filter empties the hitting degree; the walk does not continue to Carol.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "labels": ["spam"], "now": 10 },
+          "expect": { "claimCount": 0, "degree": 0, "averageScore": null, "claims": [] }
+        },
+        {
+          "type": "rating",
+          "note": "Label hints are display text, never filter input.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "labels": ["Looks like a real person"], "now": 10 },
+          "expect": { "claimCount": 0 }
+        }
+      ]
+    },
+    {
+      "id": "rating-exact-context-and-activity",
+      "model": "dtp-wot/1",
+      "tags": ["rating", "context", "activity"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@t1", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "value": 1 },
+        { "id": "@t2", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "value": 1 },
+        { "id": "@generic", "pubkey": "@alice", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 80, "scopeRank": 2 },
+        { "id": "@product", "pubkey": "@alice", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "context": "product", "value": 20, "scopeRank": 2 },
+        { "id": "@future", "pubkey": "@carol", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 100, "activate": 100, "scopeRank": 2 }
+      ],
+      "queries": [
+        {
+          "type": "rating",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "now": 10 },
+          "expect": { "claimCount": 1, "claims": [{ "eventId": "@generic" }] }
+        },
+        {
+          "type": "rating",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "product", "now": 10 },
+          "expect": { "claimCount": 1, "claims": [{ "eventId": "@product", "context": "product" }] }
+        },
+        {
+          "type": "rating",
+          "note": "Carol's rating becomes active at x = 100.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "now": 100 },
+          "expect": { "claimCount": 2, "averageScore": 90 }
+        }
+      ]
+    },
+    {
+      "id": "rating-path-format",
+      "model": "dtp-wot/1",
+      "tags": ["rating", "path"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@t1", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "value": 1 },
+        { "id": "@r-alice", "pubkey": "@alice", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 80, "scopeRank": 2 },
+        { "id": "@r-root", "pubkey": "@root", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:44", "value": 20, "scopeRank": 2 }
+      ],
+      "queries": [
+        {
+          "type": "rating",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "now": 10, "format": "path" },
+          "expect": {
+            "degree": 2,
+            "pathView": {
+              "nodes": [
+                { "subject": "p:@root", "depth": 0 },
+                { "subject": "p:@alice", "depth": 1 },
+                { "subject": "i:post:id:42", "depth": 2 }
+              ],
+              "edges": [{ "eventId": "@t1", "from": "p:@root", "to": "p:@alice", "value": 1 }]
+            },
+            "ratingEdges": [{ "eventId": "@r-alice", "from": "p:@alice", "to": "i:post:id:42", "value": 1 }]
+          }
+        },
+        {
+          "type": "rating",
+          "note": "Display polarity: score < 50 draws as -1.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:44" }, "now": 10, "format": "path" },
+          "expect": { "degree": 1, "ratingEdges": [{ "eventId": "@r-root", "from": "p:@root", "to": "i:post:id:44", "value": -1 }] }
+        }
+      ]
+    },
+    {
+      "id": "rating-never-a-hop",
+      "model": "dtp-wot/1",
+      "tags": ["rating", "hop-rules"],
+      "profile": "x.com",
+      "records": [
+        { "id": "@r-root-alice", "pubkey": "@root", "kind": 32014, "created_at": 1, "subjectType": "p", "subject": "@alice", "value": 100, "scopeRank": 2 },
+        { "id": "@r-alice-post", "pubkey": "@alice", "kind": 32014, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 100, "scopeRank": 2 }
+      ],
+      "queries": [
+        {
+          "type": "rating",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "now": 10 },
+          "expect": { "claimCount": 0, "degree": 0 }
+        }
+      ]
+    }
+  ]
+}

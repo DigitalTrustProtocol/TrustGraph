@@ -1,0 +1,123 @@
+{
+  "cases": [
+    {
+      "id": "slot-newer-replaces-older-discarded",
+      "model": "dtp-wot/1",
+      "tags": ["slot"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/graph.test.ts (replacement updates)",
+      "ops": [
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@s-middle", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } },
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@s-older", "pubkey": "@root", "kind": 32009, "created_at": 9, "subjectType": "p", "subject": "@bob", "context": "identity", "value": -1 } }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 20 },
+          "expect": { "trust": 1, "distrust": 0, "direct": { "eventId": "@s-middle" } }
+        }
+      ]
+    },
+    {
+      "id": "slot-equal-created-at-lower-id-wins",
+      "model": "dtp-wot/1",
+      "tags": ["slot"],
+      "profile": "x.com",
+      "ops": [
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "0000000000000000000000000000000000000000000000000000000000000002", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } },
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "0000000000000000000000000000000000000000000000000000000000000001", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": -1 } },
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "0000000000000000000000000000000000000000000000000000000000000003", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 0 } }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 20 },
+          "expect": { "distrust": 1, "direct": { "eventId": "0000000000000000000000000000000000000000000000000000000000000001", "value": -1 } }
+        }
+      ]
+    },
+    {
+      "id": "slot-delete-winner-keeps-older-out",
+      "model": "dtp-wot/1",
+      "tags": ["slot", "delete"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/bind-identity.test.ts (tombstones)",
+      "ops": [
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@s-live", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } },
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@s-delete", "pubkey": "@root", "kind": 32009, "created_at": 20, "subjectType": "p", "subject": "@bob", "context": "identity" } },
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@s-stale", "pubkey": "@root", "kind": 32009, "created_at": 15, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 30 },
+          "expect": { "connected": false, "statements": [] }
+        },
+        {
+          "type": "lookup-incoming",
+          "note": "Delete winners never appear in lookups.",
+          "input": { "keys": ["p:@bob"], "context": "identity", "mode": "raw", "includeInactive": true, "now": 30 },
+          "expect": { "items": [] }
+        }
+      ]
+    },
+    {
+      "id": "slot-newer-live-replaces-delete",
+      "model": "dtp-wot/1",
+      "tags": ["slot", "delete"],
+      "profile": "x.com",
+      "ops": [
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@s-delete", "pubkey": "@root", "kind": 32009, "created_at": 20, "subjectType": "p", "subject": "@bob", "context": "identity" } },
+        { "op": "apply", "record": { "addressKey": "32009:@root:slot-a", "id": "@s-live", "pubkey": "@root", "kind": 32009, "created_at": 30, "subjectType": "p", "subject": "@bob", "context": "identity", "value": -1 } }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 40 },
+          "expect": { "connected": true, "distrust": 1, "direct": { "eventId": "@s-live" } }
+        }
+      ]
+    },
+    {
+      "id": "slot-apply-twice-is-idempotent",
+      "model": "dtp-wot/1",
+      "tags": ["slot", "property:idempotence"],
+      "profile": "x.com",
+      "ops": [
+        { "op": "apply", "record": { "id": "@s1", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 } },
+        { "op": "apply", "record": { "id": "@s2", "pubkey": "@alice", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } },
+        { "op": "apply", "record": { "id": "@s1", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 } },
+        { "op": "apply", "record": { "id": "@s2", "pubkey": "@alice", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 } }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@bob" }, "context": "identity", "now": 20 },
+          "expect": { "connected": true, "degree": 2, "trust": 1, "statements": [{ "eventId": "@s2" }] }
+        },
+        {
+          "type": "lookup-incoming",
+          "input": { "keys": ["p:@bob"], "context": "identity", "mode": "raw", "now": 20 },
+          "expect": { "items": ["@s2"] }
+        }
+      ]
+    },
+    {
+      "id": "slot-remove-op",
+      "model": "dtp-wot/1",
+      "tags": ["slot"],
+      "profile": "x.com",
+      "ops": [
+        { "op": "apply", "record": { "id": "@s1", "pubkey": "@root", "kind": 32009, "created_at": 10, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 } },
+        { "op": "remove", "addressKey": "32009:@root:p:@alice:identity" }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "p", "value": "@alice" }, "context": "identity", "now": 20 },
+          "expect": { "connected": false }
+        }
+      ]
+    }
+  ]
+}

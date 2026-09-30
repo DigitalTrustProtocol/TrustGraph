@@ -87,6 +87,7 @@ export {
 export * from './lookups'
 export * from './frontier'
 export * from './wire'
+export * from './slots'
 export { parseNodeId, subjectNodeId } from './shared/graph-deeplink'
 export * from './shared/trust-context'
 export * from './shared/trust-score'

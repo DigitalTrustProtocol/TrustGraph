@@ -1,0 +1,155 @@
+{
+  "cases": [
+    {
+      "id": "protocol-5-deletion",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "nip09"
+      ],
+      "profile": "x.com",
+      "description": "NIP-09: e targets are kept; a targets only for the author and held kinds.",
+      "event": {
+        "id": "cce60da09ff0eb6feee8d05cc6908e2432206ce47fae0ba243f92dab89e4f4b0",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000005,
+        "kind": 5,
+        "tags": [
+          [
+            "e",
+            "d59ed1e9f0bdaf21baeb5acc0d2bdd5c555649a70c0cdafb6b6bd8309b988ddd"
+          ],
+          [
+            "a",
+            "32009:799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef:041a4f6749b52be48808240ed996512a945215f36c4bebf55ce165c3dc87af70"
+          ],
+          [
+            "a",
+            "32009:8fa9539b6911a625b082900af861da9f33d0e559da6347085319a79dafb27bab:041a4f6749b52be48808240ed996512a945215f36c4bebf55ce165c3dc87af70"
+          ],
+          [
+            "a",
+            "30023:799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef:note"
+          ],
+          [
+            "k",
+            "32009"
+          ]
+        ],
+        "content": "",
+        "sig": "91c323ba15d5cf8186250f0fd3ee65b328da1805fe893ee04deb2c5d18def0cf3e58dbd071694a6a080521fa35fbb8f5cb7ed53926724f5c04f9e39cb6d7ca67"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "deletion": {
+          "eventIds": [
+            "d59ed1e9f0bdaf21baeb5acc0d2bdd5c555649a70c0cdafb6b6bd8309b988ddd"
+          ],
+          "addressKeys": [
+            "32009:799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef:041a4f6749b52be48808240ed996512a945215f36c4bebf55ce165c3dc87af70"
+          ]
+        }
+      }
+    },
+    {
+      "id": "protocol-5-foreign-targets-only",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "nip09"
+      ],
+      "profile": "x.com",
+      "description": "A deletion that only targets other kinds is not accepted.",
+      "event": {
+        "id": "b2332f08ca42991d95479227f7f3efaa898649e9ae2a38d6afb8884a7ae9c560",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 5,
+        "tags": [
+          [
+            "a",
+            "30023:799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef:note"
+          ]
+        ],
+        "content": "",
+        "sig": "80c952206a729dbaa101b86b7c807a39339acef6081cf82826f278dd7f962d9b31574cbbde9cfa30e8bfd850bca8b8e196cd8b185ecf4869d8acdd844e0481dd"
+      },
+      "expect": {
+        "valid": true,
+        "prefix": "blocked",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-5-malformed-e",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "nip09"
+      ],
+      "profile": "x.com",
+      "description": "e tags must carry a 64-hex id.",
+      "event": {
+        "id": "dd9a531bc9a7da7a5ff2e2730cd4b9c00d02a3569aac98f20132ab4e58cfde4e",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 5,
+        "tags": [
+          [
+            "e",
+            "nothex"
+          ]
+        ],
+        "content": "",
+        "sig": "058748c125d501d01a92b76dc8dbf084f6392756f1def70a4615c3e8d562334565e22ae3224286e478f08bab9cda484ad43fc39f22ce0758bc39e3450e9dba46"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-kind-1-blocked",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol"
+      ],
+      "profile": "x.com",
+      "description": "Kinds other than 32009, 32014, 10011, 5 are not held.",
+      "event": {
+        "id": "71981a5d2ec64747be8f0c9da95992c7a52b7d638566f5da7eee9a064d48b85b",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 1,
+        "tags": [],
+        "content": "hello",
+        "sig": "76545a0f1f7740bff61be2e293cb33ebc60bf0e5b5f1a2e3327f44bca4a051e724736d18e9657ee5cdb7dacdb3873466941332ca460bf0681470be64840357ac"
+      },
+      "expect": {
+        "valid": true,
+        "prefix": "blocked",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-not-an-event",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol"
+      ],
+      "profile": "x.com",
+      "description": "A JSON object that is not a signed event.",
+      "event": {
+        "kind": 32009,
+        "tags": []
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    }
+  ]
+}

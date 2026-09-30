@@ -1,0 +1,335 @@
+{
+  "cases": [
+    {
+      "id": "protocol-32014-rating",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "rating"
+      ],
+      "profile": "x.com",
+      "description": "Rating with s=x.com, fractional score, and a label.",
+      "event": {
+        "id": "e451562e0838e34f85b9eab421ac8dfad4fb115f4f7f413ebf0a51bc74cf5eb6",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32014,
+        "tags": [
+          [
+            "d",
+            "790a6b352182f4f7a0cf49bc90b5add72e0349fd1f8d836a44acdcd6b3fa5973"
+          ],
+          [
+            "i",
+            "post:id:2080659774136291424"
+          ],
+          [
+            "score",
+            "87.5"
+          ],
+          [
+            "k",
+            "post:id"
+          ],
+          [
+            "s",
+            "x.com"
+          ],
+          [
+            "l",
+            "genuine"
+          ]
+        ],
+        "content": "",
+        "sig": "c7d7e0445759a6f7b8ae0b60c0dd82acd580f58b996df0945f877dd3dd1b4db8a307821fef199094172ddbc72160d3e2ceaf15a5d359818b57d90cd5d993dd5e"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "record": {
+          "kind": 32014,
+          "value": 87.5,
+          "scopeRank": 2,
+          "labels": [
+            "genuine"
+          ],
+          "context": "",
+          "addressKey": "32014:799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef:790a6b352182f4f7a0cf49bc90b5add72e0349fd1f8d836a44acdcd6b3fa5973"
+        }
+      }
+    },
+    {
+      "id": "protocol-32014-cancel",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "rating",
+        "delete"
+      ],
+      "profile": "x.com",
+      "description": "Empty score deletes the rating slot.",
+      "event": {
+        "id": "9108fcb5f40abc8685fd706db53782ce139cce916dac99d3a1a8347997592058",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32014,
+        "tags": [
+          [
+            "d",
+            "790a6b352182f4f7a0cf49bc90b5add72e0349fd1f8d836a44acdcd6b3fa5973"
+          ],
+          [
+            "i",
+            "post:id:2080659774136291424"
+          ],
+          [
+            "score",
+            ""
+          ],
+          [
+            "k",
+            "post:id"
+          ],
+          [
+            "s",
+            "x.com"
+          ]
+        ],
+        "content": "",
+        "sig": "2afa12ce3ab120be9b085e1e83cc52fba4563ad8d426c0b20becc73d0c81f18f401d5f1898b23708772915cf9093324b2ece2780937875b52617c5800052dbd0"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "record": {
+          "kind": 32014,
+          "value": null
+        }
+      }
+    },
+    {
+      "id": "protocol-32014-zero",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "rating"
+      ],
+      "profile": "x.com",
+      "description": "A score of 0 is an active rating.",
+      "event": {
+        "id": "fa4cd7a945891c5b3163397ca34ce7014a955e06b7cbeb522542cf9fd045de12",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32014,
+        "tags": [
+          [
+            "d",
+            "790a6b352182f4f7a0cf49bc90b5add72e0349fd1f8d836a44acdcd6b3fa5973"
+          ],
+          [
+            "i",
+            "post:id:2080659774136291424"
+          ],
+          [
+            "score",
+            "0"
+          ],
+          [
+            "k",
+            "post:id"
+          ],
+          [
+            "s",
+            "x.com"
+          ]
+        ],
+        "content": "",
+        "sig": "64e2d2d9de0fc6c3acec31154067c08bef878ee8c1e40b789bc1c61bb8fb0dd233f78df1e8e6e87667039258c80cb7fe5e75c3604e17867aecbadde37336936b"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "record": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "id": "protocol-32014-no-scope",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "rating",
+        "scope"
+      ],
+      "profile": "x.com",
+      "description": "Ratings require s=x.com in profile x.com.",
+      "event": {
+        "id": "20ca1a63ef13ec663ec359c253a6dfd4c585fc36ee7d6b6c699aeec74967a5e9",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32014,
+        "tags": [
+          [
+            "d",
+            "23e1b9d275e755d2ec9ab1046b9d244421fe8591641ce7793675c481878c2cea"
+          ],
+          [
+            "i",
+            "post:id:2080659774136291424"
+          ],
+          [
+            "score",
+            "50"
+          ],
+          [
+            "k",
+            "post:id"
+          ]
+        ],
+        "content": "",
+        "sig": "2a6134218f393aefc7114d78504b59fa59f2b5821760bf00412b726724e368b40254961adf21bc603c279bf93300a27c58a78db968bbbd10326605629d6b2009"
+      },
+      "expect": {
+        "valid": true,
+        "prefix": "blocked",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32014-score-range",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "rating"
+      ],
+      "profile": "x.com",
+      "description": "Score above 100.",
+      "event": {
+        "id": "58c3ae45112c9e37709e1a41c03d800a4d6458d4ac537d41e248f8a2b88b5c9a",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32014,
+        "tags": [
+          [
+            "d",
+            "790a6b352182f4f7a0cf49bc90b5add72e0349fd1f8d836a44acdcd6b3fa5973"
+          ],
+          [
+            "i",
+            "post:id:2080659774136291424"
+          ],
+          [
+            "score",
+            "101"
+          ],
+          [
+            "k",
+            "post:id"
+          ],
+          [
+            "s",
+            "x.com"
+          ]
+        ],
+        "content": "",
+        "sig": "5a4db06c5d4cf6ab6eb93336fe1969bd75f279d69083c262b9e724b75c6287b5762d898dd86ff1a7f444ffc45af318bc3f65762df8487f3072da65a846f9f75f"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32014-score-leading-zero",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "rating"
+      ],
+      "profile": "x.com",
+      "description": "Score must be canonical (no leading zero).",
+      "event": {
+        "id": "84d3fa90214dab436d964ade5f16106f45c9a513446aee12bfb261529e7b8adc",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32014,
+        "tags": [
+          [
+            "d",
+            "790a6b352182f4f7a0cf49bc90b5add72e0349fd1f8d836a44acdcd6b3fa5973"
+          ],
+          [
+            "i",
+            "post:id:2080659774136291424"
+          ],
+          [
+            "score",
+            "08"
+          ],
+          [
+            "k",
+            "post:id"
+          ],
+          [
+            "s",
+            "x.com"
+          ]
+        ],
+        "content": "",
+        "sig": "cbf7f16920c18bf84e3900160fc4e4211756001546aee56ab5175be9fc0abb5e7d36fa01b754ac5b82072314ab4dcb947d71ca339871e487108dd7114e542b78"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    },
+    {
+      "id": "protocol-32014-score-digits",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "rating"
+      ],
+      "profile": "x.com",
+      "description": "At most 6 fraction digits.",
+      "event": {
+        "id": "e312de67694584d4add633a06e5965eafcc80ccd8dfa3a50169406d4ebb2378a",
+        "pubkey": "799d2dc6fa4244885f78bde703c55aad9ed5a2d8f73bc16c20366ea8e962ffef",
+        "created_at": 1790000000,
+        "kind": 32014,
+        "tags": [
+          [
+            "d",
+            "790a6b352182f4f7a0cf49bc90b5add72e0349fd1f8d836a44acdcd6b3fa5973"
+          ],
+          [
+            "i",
+            "post:id:2080659774136291424"
+          ],
+          [
+            "score",
+            "1.1234567"
+          ],
+          [
+            "k",
+            "post:id"
+          ],
+          [
+            "s",
+            "x.com"
+          ]
+        ],
+        "content": "",
+        "sig": "15b3abca82b88d41e69e436fe66ad06b98558cafa3d7ede9b3d682f60575d295e49725ab7e3c43c0f193f9b0dee65d6aba02add4a2bb9fcb5243fa7ccb929037"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    }
+  ]
+}

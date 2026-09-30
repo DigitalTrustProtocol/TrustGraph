@@ -1,0 +1,150 @@
+{
+  "cases": [
+    {
+      "id": "protocol-10011-claim",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "claim"
+      ],
+      "profile": "x.com",
+      "description": "Winning 10011 with twitter + twitter_id: the claim (pubkey, twitterId).",
+      "event": {
+        "id": "e7f71fe95963e9d768bd07806098cbc03cf0f76e09ca85cc3aaee3b48681839e",
+        "pubkey": "8fa9539b6911a625b082900af861da9f33d0e559da6347085319a79dafb27bab",
+        "created_at": 1790000000,
+        "kind": 10011,
+        "tags": [
+          [
+            "i",
+            "twitter:nasa"
+          ],
+          [
+            "i",
+            "twitter_id:11348282"
+          ],
+          [
+            "i",
+            "github:nasa",
+            "gist"
+          ]
+        ],
+        "content": "",
+        "sig": "a98013963e955589e5bf12b349d8ff9e1b170220fc5fc5cc0f94fc07353bfcf93793945d0cd476d95886fb5254a334e85039aeafd70a240397bd5e7a60281dae"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "record": {
+          "addressKey": "10011:8fa9539b6911a625b082900af861da9f33d0e559da6347085319a79dafb27bab:",
+          "kind": 10011
+        },
+        "claim": {
+          "pubkey": "8fa9539b6911a625b082900af861da9f33d0e559da6347085319a79dafb27bab",
+          "twitterId": "11348282",
+          "eventId": "e7f71fe95963e9d768bd07806098cbc03cf0f76e09ca85cc3aaee3b48681839e"
+        }
+      }
+    },
+    {
+      "id": "protocol-10011-revoked",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "claim"
+      ],
+      "profile": "x.com",
+      "description": "A valid 10011 without X tags is a slot winner that claims nothing (revocation).",
+      "event": {
+        "id": "83d8e68fbdf8cf2d4ebbdcdd106e1d2b76a82148ab8505b4ee210ec7d6de6993",
+        "pubkey": "8fa9539b6911a625b082900af861da9f33d0e559da6347085319a79dafb27bab",
+        "created_at": 1790000000,
+        "kind": 10011,
+        "tags": [
+          [
+            "i",
+            "github:nasa",
+            "gist"
+          ]
+        ],
+        "content": "",
+        "sig": "523f4180d42917acc6a9f8422c4a3e254ba81d34e477080e555d9ef821cf7681e7e42e1189394dee3c2aba7c22f412312e626f701dcf9925d1a417d1ec0b972a"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "record": {
+          "addressKey": "10011:8fa9539b6911a625b082900af861da9f33d0e559da6347085319a79dafb27bab:"
+        },
+        "claim": null
+      }
+    },
+    {
+      "id": "protocol-10011-malformed-claim",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "claim"
+      ],
+      "profile": "x.com",
+      "description": "Non-canonical handle: the signed 10011 is kept as the winner, but it carries no claim (treated as none).",
+      "event": {
+        "id": "9d8e0e6dbc23ade1abc133ac0c450e76d860561ef33d2adea507310fe6b8ab8f",
+        "pubkey": "8fa9539b6911a625b082900af861da9f33d0e559da6347085319a79dafb27bab",
+        "created_at": 1790000000,
+        "kind": 10011,
+        "tags": [
+          [
+            "i",
+            "twitter:NASA"
+          ],
+          [
+            "i",
+            "twitter_id:11348282"
+          ]
+        ],
+        "content": "",
+        "sig": "b9d30ac24a510368f0c34beb18753f0f62e8c4fde52f9b99fdd380bd6176388857fca50032c2f0f0588229f1503fea30110480dd2b015c3e51281cad987dc893"
+      },
+      "expect": {
+        "valid": true,
+        "eligible": true,
+        "claim": null
+      }
+    },
+    {
+      "id": "protocol-10011-bad-signature",
+      "model": "dtp-wot/1",
+      "tags": [
+        "protocol",
+        "claim",
+        "signature"
+      ],
+      "profile": "x.com",
+      "description": "10011 with a forged signature.",
+      "event": {
+        "id": "3093ba64e76c7d772f89c96222481fc93a1da883272dc71310f79f4f27d7d89b",
+        "pubkey": "8fa9539b6911a625b082900af861da9f33d0e559da6347085319a79dafb27bab",
+        "created_at": 1790000000,
+        "kind": 10011,
+        "tags": [
+          [
+            "i",
+            "twitter:nasa"
+          ],
+          [
+            "i",
+            "twitter_id:11348282"
+          ]
+        ],
+        "content": "",
+        "sig": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      },
+      "expect": {
+        "valid": false,
+        "prefix": "invalid",
+        "eligible": false
+      }
+    }
+  ]
+}

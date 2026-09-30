@@ -1,0 +1,119 @@
+{
+  "cases": [
+    {
+      "id": "path-degree-4-every-hop",
+      "model": "dtp-wot/1",
+      "tags": ["path"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/graph.test.ts (reconstructs every hop on a degree-4 path)",
+      "records": [
+        { "id": "@p-r-a", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@p-a-b", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 },
+        { "id": "@p-b-c", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 1 },
+        { "id": "@p-c-t", "pubkey": "@carol", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:4", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:4" }, "context": "identity", "now": 10, "format": "path" },
+          "expect": {
+            "connected": true, "degree": 4,
+            "pathView": {
+              "nodes": [
+                { "subject": "p:@root", "depth": 0 },
+                { "subject": "p:@alice", "depth": 1 },
+                { "subject": "p:@bob", "depth": 2 },
+                { "subject": "p:@carol", "depth": 3 },
+                { "subject": "i:user:id:4", "depth": 4 }
+              ],
+              "edges": [
+                { "eventId": "@p-r-a", "from": "p:@root", "to": "p:@alice", "value": 1 },
+                { "eventId": "@p-a-b", "from": "p:@alice", "to": "p:@bob", "value": 1 },
+                { "eventId": "@p-b-c", "from": "p:@bob", "to": "p:@carol", "value": 1 },
+                { "eventId": "@p-c-t", "from": "p:@carol", "to": "i:user:id:4", "value": 1 }
+              ]
+            }
+          }
+        },
+        {
+          "type": "trust",
+          "note": "format default carries no path.",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:4" }, "context": "identity", "now": 10 },
+          "expect": { "connected": true, "degree": 4, "pathView": { "nodes": [], "edges": [] } }
+        }
+      ]
+    },
+    {
+      "id": "path-parallel-shortest-routes",
+      "model": "dtp-wot/1",
+      "tags": ["path"],
+      "profile": "x.com",
+      "source": "AttentionX src/graph/graph.test.ts (keeps parallel shortest-path authors)",
+      "records": [
+        { "id": "@q-r-a", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@q-r-x", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@xavier", "context": "identity", "value": 1 },
+        { "id": "@q-a-b", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 },
+        { "id": "@q-x-b", "pubkey": "@xavier", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 },
+        { "id": "@q-b-t", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:5", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:5" }, "context": "identity", "now": 10, "format": "path" },
+          "expect": {
+            "connected": true, "degree": 3,
+            "pathView": {
+              "nodes": [
+                { "subject": "p:@root", "depth": 0 },
+                { "subject": "p:@alice", "depth": 1 },
+                { "subject": "p:@xavier", "depth": 1 },
+                { "subject": "p:@bob", "depth": 2 },
+                { "subject": "i:user:id:5", "depth": 3 }
+              ],
+              "edges": [
+                { "eventId": "@q-r-a" }, { "eventId": "@q-r-x" }, { "eventId": "@q-a-b" }, { "eventId": "@q-x-b" }, { "eventId": "@q-b-t" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "path-mixed-evidence-backward-union",
+      "model": "dtp-wot/1",
+      "tags": ["path", "band"],
+      "profile": "x.com",
+      "description": "Distrust evidence at the hitting degree is part of the path; the non-contributing branch is not.",
+      "records": [
+        { "id": "@m-r-a", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@m-r-b", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 },
+        { "id": "@m-r-c", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@carol", "context": "identity", "value": 1 },
+        { "id": "@m-a-t", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:6", "context": "identity", "value": 1 },
+        { "id": "@m-b-t", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:6", "context": "identity", "value": -1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:6" }, "context": "identity", "now": 10, "format": "path" },
+          "expect": {
+            "degree": 2, "trust": 1, "distrust": 1, "resolution": "mixed",
+            "pathView": {
+              "nodes": [
+                { "subject": "p:@root", "depth": 0 },
+                { "subject": "p:@alice", "depth": 1 },
+                { "subject": "p:@bob", "depth": 1 },
+                { "subject": "i:user:id:6", "depth": 2 }
+              ],
+              "edges": [
+                { "eventId": "@m-r-a", "value": 1 },
+                { "eventId": "@m-r-b", "value": 1 },
+                { "eventId": "@m-a-t", "value": 1 },
+                { "eventId": "@m-b-t", "value": -1 }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
