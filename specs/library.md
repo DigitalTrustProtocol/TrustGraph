@@ -28,7 +28,7 @@ Working npm scope `@dtp/*` (confirm availability — decision D2).
 
 | Package | Contents (from AttentionX) | Depends on | Change policy |
 | --- | --- | --- | --- |
-| `@dtp/trust-graph` | `src/graph/trust/*` verbatim: `Graph`, `Node`, `Edge`, `IndexResolver`, `Score`, `pathStrategyJson`, `IResolveStrategy`, `types`; plus the constants above. After approval: walk budgets (gap G10, [wot-model.md §6.2](wot-model.md#62-guardrails)), the per-walk identity-binding decision, lenient and strict (gap G8, [identity-binding.md](identity-binding.md)), and exposing the level structure for `graph.field` (gap G12) — all inside the walk, not in a wrapper | nothing | **Locked** — owner approval + corpus cases |
+| `@dtp/trust-graph` | `src/graph/trust/*` verbatim: `Graph`, `Node`, `Edge`, `IndexResolver`, `Score`, `pathStrategyJson`, `IResolveStrategy`, `types`; plus the constants above. Diverged from the origin under decision D3 (`DIVERGENCE.json`): walk budgets (gap G10, [wot-model.md §6.2](wot-model.md#62-guardrails)), the per-walk identity-binding decision, lenient and strict (gaps G6 / G8, [identity-binding.md](identity-binding.md)), the level structure for `graph.field` (gap G12), and gaps G1 / G2 / G3 / G4 / G7, all inside the walk, not in a wrapper | nothing | **Locked** — owner approval + corpus cases |
 | `@dtp/trust-protocol` | `lib/nostr/kind-32009.ts`, `kind-32014.ts`, `kind-10011.ts`, `nip32009.ts`; scope helpers from `shared/x-identity.ts`; `shared/trust-content.ts`. Normalization adds `hintPubkey` to records and extracts `(pubkey, twitterId)` claims from `10011` | `nostr-tools` (or `@noble/*`) | Normal review; protocol corpus |
 | `@dtp/trust-query` | `graph/types.ts`, `bounds.ts`, `query.ts`, `score-read.ts`, `path-view.ts`, `adapter.ts`, `graph.ts` (neighborhood), `ratings/ArtifactRatingResolver.ts`; lookups ([wot-model.md §8.1](wot-model.md#81-lookups)) grown from `graph/incoming.ts` and `graph/outgoing.ts` plus the `GraphManager` record helpers (`incomingRecords`, `outgoingUserRecords`) — filters, `selected` / `raw`, `mergeKeys`, order, keyset pages, counts; `shared/trust-context.ts`, `trust-score.ts`, `rating-score.ts`, `wot-follow-trust-threshold.ts`, `wot-max-degree.ts`; `subjectNodeId` / `parseNodeId` from `shared/graph-deeplink.ts`; sync frontier from `GraphManager.positiveAuthorFrontier` | trust-graph, trust-protocol | Normal review; model corpus |
 | `@dtp/relay-sync` (phase 2) | `relay/synchronizer.ts`, `filters.ts`, `live-supervisor.ts`; storage behind the existing ports (`RelayQueryClient`, `SyncCursorRepository`, `RelayEventRepository`, `GraphFrontierReader`) | trust-protocol | Normal review |
@@ -80,8 +80,8 @@ OpenAPI file).
    edits.
 4. **Seed the corpus** from the extension tests (see
    [conformance.md](conformance.md)).
-5. **Fix gaps** (G2 + G3, then G9, then G8 + G6, then G1, then G4) — each a
-   separate reviewed change with corpus cases.
+5. **Fix gaps** in `@dtp/trust-graph` (done under D3: G2, G3, G1, G4, G6,
+   G8, G10, G12, G7; G5 and G9 open), each with corpus cases.
 6. **Remove shims** by updating import sites, one module family per change.
 
 Wiring during development:

@@ -170,8 +170,9 @@ context is empty, else `"<kind>:<context>"`.
 | `32014` | exact only | `32014:security:access:frontdoor` |
 
 For `C = ""` both kinds use the single bucket `"<kind>"`. The `32014` exact
-rule is NIP-32014 "No fallback" (gap G1: TypeScript falls back for non-empty
-`c`; product queries use `""`, so results are unaffected today).
+rule is NIP-32014 "No fallback" (gap G1, fixed in `@dtp/trust-graph`; the
+AttentionX heap still falls back for non-empty `c`, which product queries
+never use).
 
 ### 4.3 Selected statement
 
@@ -182,7 +183,8 @@ rule is NIP-32014 "No fallback" (gap G1: TypeScript falls back for non-empty
 2. Inside that bucket, if several records qualify (for example an empty-scope
    slot and an `x.com` slot, or `p:<hex>` plus a bound `user:id`), pick by
    higher `scopeRank`, then greater `created_at`, then lower `id`
-   (proposal P2; TypeScript takes the first inserted — gap G2).
+   (P2; gap G2, fixed in `@dtp/trust-graph`: the AttentionX heap takes the
+   first inserted).
 3. Inactive records and Deletes do not occupy a bucket; the walk continues to
    the parent. A Neutral (`0`) record is active and **does** occupy it.
 
@@ -255,9 +257,9 @@ X account that could bind to it.
 - `expandable(A)`: true, except that for `K = 32009` the subject `NS` is not
   expanded unless it is the root. For `K = 32014` the subject is expanded
   like any node (gap G7 documents this asymmetry).
-- Hit counters of the subject are separate from its peer counters (gap G7:
-  TypeScript shares one object when `K = 32009`, which only matters if
-  `SC ≠ TC`).
+- Hit counters of the subject are separate from its peer counters (gap G7,
+  fixed in `@dtp/trust-graph`; the AttentionX heap shares one object when
+  `K = 32009`, which only matters if `SC ≠ TC`).
 - Only 32009 statements with value `1` expand the frontier. Ratings are
   never hops. Distrust and Neutral are counted evidence, never hops.
 - A statement about an unbound `user:id:X` is terminal evidence about the X
@@ -336,7 +338,8 @@ stay honest when a budget stops it.
 - The same rules apply to root-field builds and to the sync frontier.
 
 Time budgets depend on the machine, so conformance cases use node and record
-budgets only (gap G10: the TypeScript walk has no budgets yet).
+budgets only. (Gap G10, the missing budgets, is fixed in `@dtp/trust-graph`:
+`WalkBudgets { maxReachedNodes, maxWalkRecords, deadline }`.)
 
 ## 7. Results
 
@@ -526,8 +529,8 @@ Given the same final set of records, claims, own evidence, and mode, results
 MUST NOT depend on the order in which they were applied. Level assignment is
 level-synchronous, counters are commutative, §4.3 is a total order, and the
 bind ranking is a total order, so a parallel implementation that respects
-levels is deterministic. The current TypeScript
-heap violates order independence only in the gap G2 / G3 setups.
+levels is deterministic. The AttentionX heap violates order independence only
+in the gap G2 / G3 setups; `@dtp/trust-graph` fixes both.
 
 ## 12. Versioning
 

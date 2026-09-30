@@ -125,7 +125,8 @@ Acceptance: vendored bytes match; the ported extension tests pass (TG-3).
       neighborhood, frontier, slot winners and Deletes, NIP-09 floors,
       protocol validation (32009 / 32014 / 10011 / 5).
 - [x] Gap cases with `expectModel` / `expectCurrent`: G1, G2, G3, G4 (+G7),
-      G5, G8 (bind situations), G10 (node budget).
+      G5, G8 (bind situations), G10 (node budget). After TG-9 only G5 stays
+      tagged; the rest assert `expect`.
 - [x] Properties over every case: idempotence, older-discarded, order
       independence (outside gap and own-evidence setups), lookups ignore
       the observer, pages add up, counts = items, and a non-vacuity check.
@@ -189,12 +190,43 @@ Acceptance: vendored bytes match; the ported extension tests pass (TG-3).
       re-export shims, `npm run check` with zero test edits. Not done here:
       AttentionX is read-only for this work and the lock is not lifted.
 
-### TG-9 Gap fixes (library step 5) ⛔ D3
+### TG-9 Gap fixes (library step 5) ✅ D3 (package only)
 
-In recommended order: G2 + G3, G10 (walk budgets), G9, G8 + G6 (binding
-inside the walk, unbind), G1, G4 decision, G12 (level structure for
-`graph.field`). Each needs owner approval and corpus cases. Until then the
-corpus tags affected cases `gap:Gn` with `expectCurrent`.
+Fixed in `@dtp/trust-graph`, in the owner's order, with the corpus as the
+spec and GlobalServer `walk.rs` / `field.rs` / `frontier.rs` as the
+reference. Each diverged file lists its gap ids in `DIVERGENCE.json`:
+
+- [x] **G2** P2 selection per peer (`scopeRank` desc, `created_at` desc,
+      `id` asc) inside the first bucket of the chain.
+- [x] **G3** A Delete unlinks only its own slot.
+- [x] **G1** `32014` reads its exact context bucket only.
+- [x] **G4** Decision D4 option A: a disconnected result carries nothing.
+- [x] **G6** `Graph.unbindIdentity(iKey, { root?, source? })`.
+- [x] **G8** Binds decided inside the walk per root and level, `lenient`
+      (default, D5) or `strict`. The heap holds inputs only: own evidence
+      per root (or root-less), `10011` claims, and a witness index of
+      hinted `user:id` statements. X and P nodes are never merged, so no
+      global bind applies to every query.
+- [x] **G10** `WalkBudgets { maxReachedNodes, maxWalkRecords, deadline }`
+      checked at level boundaries (and the deadline every 4096 scanned
+      records); `truncated` + `completeDepth` appear only when a budget
+      stopped the walk.
+- [x] **G12** `IndexResolver.field()` and `executeFieldQuery()`:
+      `{ graphVersion, completeDepth, levels, binds }`, always with
+      `completeDepth`.
+- [x] **G7** Subject hit counters are a separate score from its peer
+      counters; the `32009` no-expand-subject asymmetry is kept.
+
+Left open: **G5** (`gap:G5`, protocol-layer key normalization) and **G9**
+(a publish rule in the extension backend, outside the heap). **G11** is the
+servers' ingest (PersonalServer applies kind `5`), not reimplemented in the
+heap. The AttentionX copy keeps every gap until TG-8.
+
+Rust vs spec: no disagreement found for the fixed gaps; every converted
+corpus case (`expect` = the old `expectModel`) passes on the TypeScript heap
+with the Rust semantics. Both implementations keep a `graph.field` level
+whose nodes all fail to qualify as an empty array (`[]`) rather than
+dropping it; the spec does not say either way.
 
 ### TG-10 Schemas and AsyncAPI ⏳
 
@@ -227,7 +259,7 @@ corpus tags affected cases `gap:Gn` with `expectCurrent`.
 | --- | --- | --- |
 | library.md (trust-protocol contents) | `buildNip39ProofText` / `containsNip39Proof` not moved (X proof-post composer) | here, `kind-10011.ts` header |
 | library.md (step 2–3) | The extension shim is not done (AttentionX is read-only here; D3) | TG-8 |
-| resolver-api.md | Interim `dtp.unsupported` / `dtp.gaps`, `binding-unsupported` coverage reason, default score context per query type, several clarifications | resolver-api.md (commit "Specs: pin protocol details …") |
+| resolver-api.md | `dtp.unsupported` / `dtp.gaps`, default score context per query type, several clarifications (the interim `binding-unsupported` reason was dropped after TG-9) | resolver-api.md (commit "Specs: pin protocol details …") |
 | telemetry.md | v1 SSE sends full snapshots | telemetry.md |
 
 ## What this session delivered
@@ -242,8 +274,8 @@ error codes, and number formatting (resolver-api.md). `npm run check`
 build) is green: 35 test files, 462 tests (198 ported extension tests for the
 heap / query / protocol layers and 26 for relay sync, all unchanged in logic;
 110 corpus cases; property checks; new-module tests; 48 telemetry-UI and 46
-resolver-client tests). Remaining: TG-8 (⛔), TG-9 (⛔ D3), TG-10, corpus
-generators, and more sessions.
+resolver-client tests). TG-9 followed under decision D3 (see above).
+Remaining: TG-8 (⛔), TG-10, corpus generators, and more sessions.
 
 ## Blockers (need the owner's decision)
 
@@ -271,7 +303,7 @@ their owners.
 | --- | --- | --- | --- | --- |
 | E1 | `reqId` already in flight | `DTP-ERR invalid` | HEAD: not checked (the second request replaces the first's cancel flag). Working tree: `DTP-ERR invalid` | `invalid` |
 | E2 | `DTP-CANCEL` | `DTP-ERR cancelled` when the operation next yields | `DTP-ERR cancelled` immediately; the late result is dropped | Either, at most once, never with `DTP-OK` |
-| E3 | `graph.field` | `DTP-ERR unsupported` (listed in `dtp.unsupported`, gap G12) | Implemented | Interim `unsupported` allowed |
+| E3 | `graph.field` | Implemented (after TG-9 G12) | Implemented | Both implement it |
 | E4 | `hopContext` other than `identity` | `DTP-ERR unsupported` | Accepted | Interim `unsupported` allowed |
 | E5 | `rate-limited` | Only as an `OK` prefix (heap edge limit); no `DTP-ERR rate-limited` | Only at HTTP upgrade (too many connections); no `DTP-ERR rate-limited` | `DTP-ERR` when `rateLimit` is exceeded; neither server implements `rateLimit` yet |
 | E6 | Banned pubkey | `EVENT`: `OK false blocked: pubkey is banned` (even with open writes); `AUTH`: `restricted:` | No ban list (NIP-86 `banpubkey` not implemented); non-members get `restricted:` like PS | `restricted` (PS `EVENT` differs) |

@@ -99,13 +99,13 @@ whose `POST /` management returns an `unsupported:` error for every method
 does not list 86). Clients discover management support from this list, not
 from the server's name.
 
-*Interim (until decision D3 lands gaps G8 / G10 / G12 in `@dtp/trust-graph`):*
-a TypeScript server lists only the operations it implements in
-`capabilities`, names each missing one with its reason in
-`dtp.unsupported` (`{ "graph.field": "…" }`), and lists the open model gaps
-in `dtp.gaps` (`["G8", "G10", "G12"]`). Calls to a missing operation answer
-`DTP-ERR <reqId> unsupported <reason>`. Both fields disappear when the gaps
-close.
+A server lists only the operations it implements in `capabilities`, names
+each missing one with its reason in `dtp.unsupported`, and lists the model
+gaps its walk still has in `dtp.gaps` (see
+[conformance.md § Known gaps](conformance.md#known-gaps)). Calls to a missing
+operation answer `DTP-ERR <reqId> unsupported <reason>`. Both fields are
+absent when nothing is missing or open. (`@dtp/trust-graph` closed G8, G10,
+and G12 under decision D3, so the Personal Server now offers `graph.field`.)
 
 ## Messages
 
@@ -395,7 +395,7 @@ The rating hop threshold is fixed at 1 by the product profile
 | `completeDepth` | Deepest walk level fully built before a guardrail stopped it ([wot-model.md §6.2](wot-model.md#62-guardrails)) |
 | `statementsTruncated: true` | `statements` / `claims` were cut by `statementLimit` |
 | `coverage` | `complete` \| `partial` |
-| `coverageReasons[]` | `root-warming` (the server is still fetching data for this root: first sync of a new root, or open requests to writers), `claims-pending` (strict mode is waiting for a candidate's `10011`), `binding-unsupported` (interim: the server cannot bind X accounts yet — gap G8 — so a `user:id` subject is answered without binds and routes through X accounts are missing) |
+| `coverageReasons[]` | `root-warming` (the server is still fetching data for this root: first sync of a new root, or open requests to writers), `claims-pending` (strict mode is waiting for a candidate's `10011`) |
 | `binding` | For `user:id` subjects: `{ mode, pubkey?, source, confirmed, witnessEventId?, witnessDegree?, claimEventId?, cutCandidate?, cutReason? }` ([identity-binding.md §8](identity-binding.md#8-result-provenance)) |
 
 ## Push topics

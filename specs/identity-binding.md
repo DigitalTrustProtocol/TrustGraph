@@ -187,9 +187,9 @@ issuer's hint (`primaryNpubFromRow` → `eventNpub`). See conformance gap G9.
 
 | Runtime | Own evidence | Witnesses | Claims | Default mode |
 | --- | --- | --- | --- | --- |
-| Attention (local heap) | `xIdentities` Bio / linking post | Synced `32009` | `10011` fetched for Bio npubs today; strict also needs claims for witnessed candidates | Lenient (closest to today) |
-| Personal Server | **None** — public events only; step 1 of §4 never applies | Synced `32009` and the extension's own signed events | Synced `10011` for candidates | Set per query; default is decision D5 |
-| Global Server | **None** — public events only; step 1 of §4 never applies | All `32009` its Sync Servers push | All `10011` its Sync Servers push | Set per query; default is decision D5 |
+| Attention (local heap) | `xIdentities` Bio / linking post | Synced `32009` | `10011` fetched for Bio npubs today; strict also needs claims for witnessed candidates | Lenient (decision D5); strict on request |
+| Personal Server | **None** — public events only; step 1 of §4 never applies | Synced `32009` and the extension's own signed events | Synced `10011` for candidates | Set per query (`bindingMode`); lenient by default (decision D5) |
+| Global Server | **None** — public events only; step 1 of §4 never applies | All `32009` its Sync Servers push | All `10011` its Sync Servers push | Set per query (`bindingMode`); lenient by default (decision D5) |
 
 Both servers bind the same way. When Attention uses a server, the user's own
 X observation (Bio / linking post) counts only once it is published as the
