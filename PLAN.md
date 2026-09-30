@@ -100,36 +100,66 @@ Acceptance: vendored bytes match; the ported extension tests pass (TG-3).
       `maxPathNodes` result guardrails, `graph.neighborhood` center forms
       (heap index, wire id, `keys`), wire subject parsing.
 
-### TG-4 Conformance corpus and runner (library step 4) ⏳ → see status below
+### TG-4 Conformance corpus and runner (library step 4) ✅
 
-- [ ] `corpus/manifest.json`, `corpus/protocol/*.json`, `corpus/model/*.json`
-      in the format of [conformance.md](specs/conformance.md), `@name`
-      placeholders expanded to `sha256(name)` hex.
-- [ ] `@dtp/conformance` runner (Vitest) executing every case against the
-      TS packages; canonical comparison; gap cases assert `expectCurrent`.
-- [ ] Seed set ported from the extension tests: walk, threshold, path,
-      rating, bind (current `bindIdentity` behaviour), lookups (paging,
-      counts, `mergeKeys`), frontier, protocol validation, NIP-09 floors.
-- [ ] Properties: idempotence, older-discarded, order independence (outside
-      gap setups), lookups ignore the observer, pages add up, counts = items.
+- [x] `corpus/manifest.json`, `corpus/model/*.json` (12 files, 60+ cases,
+      130+ queries), `corpus/protocol/*.json` (35 generated cases), format
+      documented in [corpus/README.md](corpus/README.md); `@name`
+      placeholders expand to `sha256(name)` hex.
+- [x] `@dtp/conformance`: loader, TS model runner (heap + `@dtp/trust-query`),
+      protocol runner (`classifyEvent`), canonical comparison (P3 order, set
+      sorting, `1e-9`), partial-expectation matcher, corpus lint (gap tags
+      ⇔ `expectModel` / `expectCurrent`, both binding modes on `bind`
+      cases), telemetry schema validator and Prometheus metric checker for
+      the session suite.
+- [x] Seed set from the extension tests: walk, threshold, band, context,
+      path, rating, bind (identity-binding.md §5 situations 1–13 in both
+      modes; today's `bindIdentity` behaviour as `expectCurrent`), lookups
+      (selected / raw, `mergeKeys`, contextMatch, values, time range, author
+      order, paging, totals, counts, keys not resolved through binds),
+      neighborhood, frontier, slot winners and Deletes, NIP-09 floors,
+      protocol validation (32009 / 32014 / 10011 / 5).
+- [x] Gap cases with `expectModel` / `expectCurrent`: G1, G2, G3, G4 (+G7),
+      G5, G8 (bind situations), G10 (node budget).
+- [x] Properties over every case: idempotence, older-discarded, order
+      independence (outside gap and own-evidence setups), lookups ignore
+      the observer, pages add up, counts = items, and a non-vacuity check.
+- [ ] Differential fuzzing generators (`corpus/generators/`) — later.
+- [ ] Session suite `corpus/sessions/*.json` (both servers, byte-equal
+      transcripts) — needs the Global Server; not started.
 
-### TG-5 `@dtp/telemetry-ui` ⏳
+### TG-5 `@dtp/telemetry-ui` ✅
 
-- [ ] Static app (plain TS, no bundler, no CDN, < 100 KB gzip) with the
-      pages of [telemetry.md](specs/telemetry.md), reading
-      `/admin/api/telemetry`, `/admin/api/stream`, `/admin/api/history`.
-- [x] Shared snapshot contract: `packages/telemetry-ui/src/schema.ts` and
-      `schemas/telemetry.v1.json`; `SHARED_METRICS` list.
+- [x] Static app (plain TS, no bundler, no CDN, strict CSP, 16 KB gzip)
+      with every page of [telemetry.md](specs/telemetry.md): Overview,
+      Graph, Ingest, Sources, Queries, Connections, Memory, Roots, Logs,
+      Config; hash routing, light / dark theme, keyboard navigation, text
+      tables, canvas sparklines; `null` sections render an explicit empty
+      state.
+- [x] Reads `/admin/api/telemetry`, `/admin/api/stream` (`event:
+      snapshot`), `/admin/api/history`.
+- [x] Shared contract: `src/schema.ts` + `schemas/telemetry.v1.json`,
+      `SHARED_METRICS`, `sampleSnapshot()`; `@dtp/telemetry-ui/assets`
+      exports the built directory for servers.
 
-### TG-6 `@dtp/resolver-client` ⏳
+### TG-6 `@dtp/resolver-client` ✅
 
-- [ ] NIP-01 framing, NIP-42 via signer callback, pipelining, cancel,
-      coalescing, reconnect with backoff, subscriptions.
+- [x] NIP-01 framing, pipelined `DTP` requests with coalescing of identical
+      in-flight calls, timeouts and aborts with `DTP-CANCEL`, NIP-42 via a
+      signer callback with one retry, `EVENT` / `OK`, limited `REQ`, push
+      subscriptions, backoff reconnect (0.5 s → 30 s, jitter) restoring
+      session defaults and topics, `instanceChanged`, idle close.
+- [x] Interop proven against the Personal Server over a real socket
+      (PersonalServer `test/resolver-client.test.ts`).
 
-### TG-7 `@dtp/relay-sync` (library phase 2) ⏳
+### TG-7 `@dtp/relay-sync` (library phase 2) ✅
 
-- [ ] Port `relay/synchronizer.ts`, `filters.ts`, `live-supervisor.ts`
-      behind their existing ports. Not started this session.
+- [x] `synchronizer`, `filters`, `live-supervisor`, `retry`, `types`, `graph`
+      ported from AttentionX HEAD with import rewrites only; the extension's
+      relay tests pass unchanged. Hosts implement the ports
+      (`RelayQueryClient`, `RelaySubscribeClient`, `SyncCursorRepository`,
+      `RelayEventRepository`, `GraphFrontierReader`); the Personal Server
+      does (P2).
 
 ### TG-8 Extension shim (library steps 2–3) ⛔ D3 + AttentionX owner
 
@@ -163,12 +193,30 @@ corpus tags affected cases `gap:Gn` with `expectCurrent`.
 | TG-D6 | Lookup `selected` = one record per (author, subject, kind); first bucket of the chain, then P2 (`scopeRank` desc, `created_at` desc, `id` asc); `contextMatch: any` picks by P2 across all buckets; `values` / `labels` / `subjectTypes` / `since` / `until` apply **after** selection | §8.1 leaves `any` and filter order open; post-selection filtering keeps counts consistent with the selected statement |
 | TG-D7 | `maxLookupRecords`: stop scanning, return the page from what was scanned with `truncated` + `edgeBudget`, omit totals | Spec rule; at Personal Server sizes the budget does not trigger |
 | TG-D8 | Resolver statement lists are sorted in P3 order before `statementLimit` cuts them (servers only, `wire.ts`); `query.ts` keeps walk order | Deterministic cuts across TS and Rust; the extension path is unchanged |
+| TG-D9 | NIP-09 slot floors live in `@dtp/trust-query` (`SlotFloors`, `applyWithFloors`, `deleteSlotAt`, `deleteWinner`) | Needed by servers and the corpus runner; outside the locked heap; one number per deleted slot, not an event list |
+| TG-D10 | `graph.neighborhood` is built at the server cap, then cut in `eventId` order | A truncated neighborhood must not depend on heap insertion order (order-independence property) |
+| TG-D11 | Corpus: one file may hold `{ cases: [...] }`; default `addressKey` `<kind>:<pubkey>:<subjectType>:<subject>:<context>`; lookups compare `items` in order, everything set-valued sorted | Readable grouped files; Rust gets a precise, documented format (corpus/README.md) |
+| TG-D12 | Protocol cases are generated from fixed keys with expectations written by hand and `d` computed independently of the implementation | Signed events cannot be hand-written; independence keeps them a real check |
+| TG-D13 | Telemetry snapshot contract defined in `telemetry-ui/src/schema.ts` + `schemas/telemetry.v1.json` | telemetry.md names the schema file but not its fields; both servers read it |
 
 ## Deviations from the specs
 
 | Spec | Deviation | Where recorded |
 | --- | --- | --- |
 | library.md (trust-protocol contents) | `buildNip39ProofText` / `containsNip39Proof` not moved (X proof-post composer) | here, `kind-10011.ts` header |
+| library.md (step 2–3) | The extension shim is not done (AttentionX is read-only here; D3) | TG-8 |
+| resolver-api.md | Interim `dtp.unsupported` / `dtp.gaps`, `binding-unsupported` coverage reason, default score context per query type, several clarifications | resolver-api.md (commit "Specs: pin protocol details …") |
+| telemetry.md | v1 SSE sends full snapshots | telemetry.md |
+
+## What this session delivered
+
+TG-0 … TG-7 above, in commits after the imported specs. `npm run check`
+(lint `--deny-warnings`, typecheck of every package and of all tests, Vitest,
+build) is green: 35 test files, 462 tests (198 ported extension tests for the
+heap / query / protocol layers and 26 for relay sync, all unchanged in logic;
+110 corpus cases; property checks; new-module tests; 48 telemetry-UI and 46
+resolver-client tests). Remaining: TG-8 (⛔), TG-9 (⛔ D3), TG-10, corpus
+generators and the session suite.
 
 ## Blockers (need the owner's decision)
 
