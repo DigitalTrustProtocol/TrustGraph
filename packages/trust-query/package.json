@@ -1,0 +1,29 @@
+{
+  "name": "@dtp/trust-query",
+  "version": "0.1.0",
+  "description": "Maps the heap walk to trust / rating DTOs; lookups, neighborhood, sync frontier, resolver-protocol result shaping",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
+    }
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json && node ../../scripts/fix-esm-extensions.mjs dist"
+  },
+  "dependencies": {
+    "@dtp/trust-graph": "0.1.0",
+    "@dtp/trust-protocol": "0.1.0"
+  }
+}
