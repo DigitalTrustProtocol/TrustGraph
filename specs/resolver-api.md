@@ -70,6 +70,10 @@ and `dtp.limits`.
 - Subjects are `{ "type": "p" | "e" | "i", "value": string }`. A wire node id
   is `"<type>:<value>"` (the extension's `subjectNodeId` format).
 - Times are Unix seconds. `now` is optional; the server clock is the default.
+- Scores and averages are JSON numbers. A server may write any valid JSON
+  form of a number (`1.5e-6` and `0.0000015` are the same value); clients
+  and the conformance suite compare values, never number text. Averages are
+  compared within `1e-9` ([wot-model.md §7.3](wot-model.md#73-rating-k--32014)).
 - Every result carries `graphVersion` (monotonic per `instanceId`). Numeric
   node ids in `pathView` and neighborhood results are valid only for that
   `instanceId`.
@@ -83,11 +87,17 @@ and `dtp.limits`.
 - `permessage-deflate` is supported; clients on loopback may skip it.
 - Maximum message size: 4 MB (default).
 
-The NIP-11 document lists `supported_nips` (1, 9, 11, 42, 43, 86), `self` (the
+The NIP-11 document lists `supported_nips`, `self` (the
 server's own pubkey, used to sign its membership list), `limitation`, and a
 `dtp` object: `{ api, model, corpus, instanceId, scopeProfile, capabilities,
 limits }`. In v1 `capabilities` always contains every operation in this
 document; it exists so later versions can add operations.
+
+`supported_nips` lists only what the server implements: always 1, 9, 11,
+42, and 43; **86 only when the NIP-86 management endpoint answers** (a server
+whose `POST /` management returns an `unsupported:` error for every method
+does not list 86). Clients discover management support from this list, not
+from the server's name.
 
 *Interim (until decision D3 lands gaps G8 / G10 / G12 in `@dtp/trust-graph`):*
 a TypeScript server lists only the operations it implements in
@@ -120,8 +130,34 @@ close.
   queueing.
 - Identical in-flight queries on one connection MAY be computed once.
 - `DTP-ERR` codes reuse the NIP-01 / NIP-42 machine-readable prefixes where
-  they fit: `invalid`, `auth-required`, `restricted`, `rate-limited`,
-  `error`; plus `busy`, `cancelled`, `not-found`, `unsupported`.
+  they fit; see [§ Error codes](#error-codes).
+
+### Error codes
+
+One vocabulary for `DTP-ERR` codes, batch item errors, and the
+machine-readable prefixes of `OK`, `CLOSED`, and `NOTICE` messages. Clients
+branch on the code only; the message after it is human text and differs
+between servers.
+
+| Code | `DTP-ERR` when | As a prefix (`OK` / `CLOSED` / `NOTICE`) |
+| --- | --- | --- |
+| `invalid` | Malformed `params` or field; unknown operation (`invalid: unknown op`); unknown push topic; over `maxBatchItems`, `maxLookupKeys`, or `maxLookupBatch`; a `reqId` already in flight on the connection; a non-string `op` | Event fails validation (shape, id, signature, NIP rules); malformed `REQ` filter; malformed frame or binary frame (`NOTICE`) |
+| `auth-required` | `auth.reads = members` and the connection has not authenticated | Same for `EVENT` (`auth.writes`) and `REQ`; failed `AUTH` answers use `invalid:` or `restricted:` |
+| `restricted` | Authenticated, but no pubkey on the connection has the needed role | `EVENT` without the `write` role; banned pubkey; `AUTH` by a banned pubkey |
+| `rate-limited` | The client exceeded its `rateLimit` cost budget | `EVENT` refused by a write limit (cost budget, or a server capacity limit such as a full heap) |
+| `busy` | Over `maxInFlight`, or the `maxColdWalks` queue is full; retry later | - |
+| `cancelled` | Answer to `DTP-CANCEL` for an in-flight operation. The server sends it at most once, immediately or when the operation next checks, and never also a `DTP-OK`. A `DTP-CANCEL` for an unknown `reqId` gets no answer | - |
+| `unsupported` | An operation or option the server does not implement (interim: listed in `dtp.unsupported`, see [§ Connection](#connection)) | `REQ` outside the limited reads (`CLOSED`); NIP-86 methods a server does not implement (HTTP body) |
+| `not-found` | Reserved; no v1 operation emits it. Clients treat it like `error` | - |
+| `error` | Internal failure; the request may be retried | `OK` false when storage fails |
+| - | - | `duplicate:` (`OK` true: already stored, or older than the stored winner) and `blocked:` (`OK` false: kind or scope not accepted, deleted, deletion without a held target) are ingest-only ([§ Ingest](#ingest-event)) |
+
+Batch operations (`trust.batch`, `rating.batch`, `lookup.batch`) report
+per-item failures in `errors`, not as `DTP-ERR`: the value is `"timeout"`
+for items the `batchDeadline` did not reach, or `"<code>: <message>"` with
+code `invalid` or `unsupported` for an item whose own params fail. Any other
+failure (`busy`, `cancelled`, `error`, auth) fails the whole operation with
+`DTP-ERR`.
 
 ### Session defaults
 
@@ -244,7 +280,7 @@ counts and pages. They feed lists, profile panels, and graph views.
 | `lookup.outgoing` | `{ keys, …lookup }` | `LookupPage` of statements **by** the keys (pubkeys) |
 | `lookup.counts` | `{ keys, direction, kinds?, context?, contextMatch?, values?, subjectTypes?, labels?, mergeKeys?, includeInactive?, now? }` | `{ graphVersion, counts: { [key \| "merged"]: { trust, neutral, distrust, ratings } } }` |
 | `lookup.batch` | `{ queries: [{ id, op: "incoming" \| "outgoing" \| "counts", params }] (≤ 50) }` | `{ graphVersion, results: { [id]: result }, errors? }` |
-| `graph.neighborhood` | `{ keys \| centerId: number \| "<type>:<value>", direction?, valueFilter?, context?, limit? }` | `{ graphVersion, centerId, truncated, nodes, edges }` — incoming + outgoing lookups for one center, shaped for graph views (no X chrome). With `keys`, the first key is the center and the other `p:` keys also expand outward. Past `limit`, edges are kept in `eventId` order (then `truncated` and `neighborhoodLimit`) |
+| `graph.neighborhood` | `{ keys \| centerId: number \| "<type>:<value>", direction?, valueFilter?, context?, limit? }` | `{ graphVersion, centerId, truncated, nodes, edges }` — incoming + outgoing lookups for one center, shaped for graph views (no X chrome), with rating arrows on post centers; see [below](#graphneighborhood) |
 
 Lookup fields (`…lookup`):
 
@@ -288,6 +324,37 @@ Lookup fields (`…lookup`):
 - Lookups never return an average rating: that would be a crowd score. Use the
   resolver for "what does my network think".
 - `lookup.counts` answers headers and badges without shipping rows.
+
+#### `graph.neighborhood`
+
+One degree around a center, shaped for graph views. Params:
+
+| Field | Default | Meaning |
+| --- | --- | --- |
+| `centerId` / `keys` | required | The center as a heap index from an earlier result (same `instanceId`), a wire id, or the first of `keys`. The other `p:` keys also expand outward. A bound `user:id` center also expands its bound pubkey |
+| `direction` | `both` | `out` (statements by the center, only if it is a pubkey), `in` (statements about it), or `both` |
+| `valueFilter` | `both` | Which edge values to draw: `trust` keeps value `1`, `distrust` keeps `-1`, `both` keeps `1`, `0`, and `-1`. Neutral edges therefore appear only with `both` |
+| `context` | `""` | Trust edges come from the buckets of `Chain(32009, context)` ([wot-model.md §4.2](wot-model.md#42-context-buckets-and-chains)); every active winner in those buckets is an edge (no per-author selection) |
+| `limit` | 200 | ≤ `maxNeighborhoodLimit` |
+| `now` | server clock | Activity window |
+
+Result `{ graphVersion, centerId, truncated, truncatedReasons?, nodes, edges }`:
+
+- `nodes`: `{ id, kind, depth, label, subject }`; the center has depth `0`,
+  every other node `1`. `id` is implementation-local; compare by `subject`.
+- `edges`: `{ id, from, to, value, context, eventId, depth: 1 }`, one per
+  statement. `from` / `to` are node ids.
+- **Rating arrows.** When `direction` includes `in` and the center is a post
+  (`i:post:id:*` or `e`), active `32014` ratings about it in the exact empty
+  context are drawn as edges too: `value` is the display polarity (`1` if
+  score ≥ 50, else `-1`, as `ratingEdges` in [wot-model.md §7.3](wot-model.md#73-rating-k--32014)),
+  `id` and `eventId` are the rating's event id, and `valueFilter` applies to
+  that polarity. An author whose `32009` edge to the center is already in the
+  result (after `valueFilter`) gets no rating arrow, so each author draws at
+  most one arrow. Ratings are never hops; a rating arrow is display only.
+- Past `limit`, edges are kept in `eventId` order, nodes without a kept edge
+  are dropped (the center stays), and the result carries `truncated: true`
+  and `truncatedReasons: ["neighborhoodLimit"]`.
 
 ### Other operations
 
@@ -420,5 +487,7 @@ subscriptions once for Attention, the Website, and other apps.
 protocol part) runs the same scripted sessions — messages, operations, errors,
 auth, ingest, deletions, guardrail responses — against a running Personal
 Server and a running Global Server with the same configuration and the same
-events, and requires byte-equal results after canonicalization. It sits
-beside the model corpus ([conformance.md](conformance.md)).
+events, and requires equal results after canonicalization (numbers compared
+by value within `1e-9`, never by text). Steps for operations or behaviour a
+server does not have yet are gated on `dtp.capabilities` and `dtp.gaps`. It
+sits beside the model corpus ([conformance.md](conformance.md)).

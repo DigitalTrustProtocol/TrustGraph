@@ -154,6 +154,21 @@ Trust and rating results about `user:id:X` carry an additive `binding` field
 `source` is one of `own-bio`, `own-post`, `own-statement`, `witness`, `none`
 (`own-bio` / `own-post` occur only in the extension's local heap; servers hold
 no X data).
+
+`witnessDegree` is the degree of the witness statement, counted like the
+result `degree`: `level(A) + 1` for witness author `A`. The root's own
+statement (`own-statement`) has `witnessDegree: 1`; a witness by a level-1
+author has `2`. It is present exactly when `witnessEventId` is: for sources
+`own-statement` and `witness`, and on a strict-mode unbound result with a
+`cutCandidate`, where both describe the cut candidate's witness. A bind used
+at level `ℓ` always has `witnessDegree ≤ ℓ + 1`.
+
+**Which level's bind a result reports.** A connected result at degree `d`
+reports `bind(R, X, d − 1)`, the bind its evidence was counted under. A
+disconnected result reports `bind(R, X, ℓ*)` at the level of the walk's last
+hit check ([wot-model.md §6.1](wot-model.md#61-disconnected-results)): `D − 1`
+at `maxDepth`, the last non-empty level when the frontier ran out, or
+`completeDepth` when a budget stopped the walk.
 Unbound results carry `source: "none"` and, in strict mode, the top cut
 candidate and the reason (`no-claim`, `false-hint`) so the UI can explain it.
 

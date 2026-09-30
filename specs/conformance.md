@@ -113,9 +113,24 @@ Both runners execute these over every model case and over generated graphs:
 | Counts = items | `lookup.counts` equals the per-value tally of the unpaged `lookup.incoming` / `lookup.outgoing` with the same filters |
 | Field = walk (Rust) | The root-field fast path equals the exact walk ([GlobalServer resolver-engine.md](../../GlobalServer/specs/resolver-engine.md)) |
 
-Cases that trigger a known gap are tagged `gap:Gn`. The TypeScript runner
-asserts `expectCurrent` until the fix lands; the Rust runner asserts
-`expectModel`. Generators avoid gap setups until the gaps are closed.
+Cases that trigger a known gap are tagged `gap:Gn` and carry two
+expectations per query:
+
+- `expectModel` is what this spec requires. A runner for a model-correct
+  implementation (the Rust runner) asserts it, and reports the case as
+  **gap fixed** rather than as a failure of the heap.
+- `expectCurrent` is what the vendored TypeScript heap does today. The
+  TypeScript runner asserts it, so the locked heap stays pinned: a change in
+  its behaviour fails the case until the owner updates the gap.
+- A runner never asserts `expect` on a gap case (the lint forbids `expect`
+  beside `expectModel`). When a gap is fixed in the heap, its cases drop the
+  tag and `expectCurrent`, and `expectModel` becomes `expect`.
+- Where the gap setup hides a rule that holds anyway, a **companion case**
+  without the tag pins that rule for both runners (for example
+  `context-neutral-occupies-its-bucket-connected` next to the G4 case).
+
+Generators and order-independence properties skip gap cases until the gaps
+are closed.
 
 ## Differential fuzzing
 
@@ -164,9 +179,26 @@ expose exactly the same API ([resolver-api.md](resolver-api.md)):
   `REQ` answers, every `DTP` operation, `DTP-ERR` codes, pushes, NIP-09
   deletions, guardrail responses (using node and record budgets, not time).
 - The same suite runs against a started Personal Server and a started Global
-  Server with identical configuration. After canonicalization (drop
-  `instanceId`, `graphVersion`, numeric node ids, timestamps the server
-  chose), both transcripts must be identical.
+  Server with identical configuration. Each server's answers must match the
+  scripted expectations, so the two transcripts agree after canonicalization
+  (drop `instanceId`, `graphVersion`, numeric node ids, timestamps the server
+  chose).
+- **Numbers compare by value.** Frames are parsed as JSON and numbers match
+  within `1e-9`, so a server may write `1.5e-6` where another writes
+  `0.0000015` (JavaScript and Rust format small floats differently). No step
+  compares number text.
+- **Order.** Frames of one step arrive in the listed order unless the step
+  says `unordered` (for example an `OK` and the `DTP-PUSH` it causes).
+  Arrays whose order is implementation-local (neighborhood nodes and edges)
+  use the `$unordered` matcher. `DTP-PUSH` frames are matched only by steps
+  that expect one; other pushes are ignored.
+- **Capability gating.** A session or step may list `requires`: an operation
+  name that must appear in `dtp.capabilities`, or `fixed:Gn` for a gap the
+  server must not list in `dtp.gaps`. The runner reads both with `info`
+  before the first step. An unmet step asserts its `otherwise` frames (for
+  `graph.field`: `DTP-ERR unsupported`), or is skipped when it has none. The
+  walk-budget session (`requires: ["fixed:G10"]`) needs the server started
+  with the session's `config` limits.
 - A server may not ship an operation, field, error code, or default that the
   suite does not cover on both.
 - The suite also checks the admin telemetry JSON and `/metrics` of both
@@ -189,7 +221,7 @@ package owner and lands with corpus cases.
 | G1 | `Graph.getContextIndexes`, used by `IndexResolver` for `32014` | Non-empty `c` on a rating query falls back to parent and global buckets | Exact `c` only (NIP-32014) | None — product rating queries use `c = ""` |
 | G2 | `Node` peer lists; `IndexResolver.buildIncomingEdges` and expansion | When one author has several active records to one node in one bucket (empty-scope + `x.com` slots, or `p:<hex>` + bound `user:id`), the first inserted wins; the winner can change after a worker restart | `scopeRank` desc, `created_at` desc, `id` asc (P2) | Rare |
 | G3 | `Graph.applyTrustEvent` → `Node.removeOut` / `removeIn` | A Delete unlinks **every** same-kind record from that author to that node in the bucket with `created_at ≤` the Delete, not only its own slot; at load the outcome depends on iteration order | A Delete affects its own slot only | Rare (same setup as G2) |
-| G4 | `IndexResolver` final degree | A disconnected result may carry Neutral statements from the last examined degree, and can count one twice when the subject is also a peer | Disconnected ⇒ no statements, `neutral = 0` (alternative: report the nearest Neutral-only degree) | Cosmetic |
+| G4 | `IndexResolver` final degree | A disconnected result may carry Neutral statements (and a Neutral `direct`) from the last examined degree, and can count one twice when the subject is also a peer | Disconnected ⇒ no statements, `neutral = 0`, no `direct` ([wot-model.md §6.1](wot-model.md#61-disconnected-results); option A of the open decision D4, the alternative being to report the nearest Neutral-only degree) | Cosmetic: the extension shows the root's own Neutral on a disconnected result |
 | G5 | `Graph.addNode` / `getNode` | Every node key is lowercased, so `web:` URLs that differ only in path case collide | Lowercase only case-insensitive parts, at the protocol layer | None for X |
 | G6 | `Graph` | No unbind; removing a bind needs a full reload | Add `unbindIdentity(iKey)` | Servers need live unbind |
 | G7 | `IndexResolver` subject score | For `32009` the subject's hit counters and peer counters share one object; with `SC ≠ TC` hop statements can leak into evidence. The subject is never expanded for `32009` but is for `32014` | Keep counters separate; keep the expansion asymmetry, documented | None — product uses `SC = TC` for trust |
@@ -204,7 +236,8 @@ Recommended order: fix G2 and G3 together while extracting the package (they
 are the only order-dependent behaviours), then G10 (servers need it before
 they go live), then G9 (a publish rule outside the locked folder), then G8
 with G6 (binding inside the walk replaces `bindIdentity`-only binding), then
-G1, then decide G4.
+G1, then G4 once decision D4 is taken.
 
-Budget cases in the corpus (`model/budget-*`) use node and record budgets
-only, never time, so both runners get identical `completeDepth` and results.
+Budget cases in the corpus (`gap-g10-*` until G10 lands, then
+`model/budget-*`) use node and record budgets only, never time, so both
+runners get identical `completeDepth` and results.

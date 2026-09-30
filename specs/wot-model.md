@@ -267,9 +267,29 @@ X account that could bind to it.
 
 ### 6.1 Disconnected results
 
-A `DISCONNECTED` result has `connected = false`, `degree = 0`, and no
-statements (proposal for gap G4; TypeScript can leak Neutral statements from
-the last examined degree).
+A `DISCONNECTED` result has `connected = false`, `degree = 0`,
+`trust = distrust = neutral = 0`, `resolution = none`, empty `statements` and
+`sourceEventIds`, and no `direct` (absent or `null`). Neutral hits seen at
+examined degrees are not reported: they did not stop the walk, so they are
+not the answer. This also holds when the root's own statement is a Neutral
+that occupies its context bucket (it hides the root's broader statements, §4.3,
+but is not evidence by itself).
+
+This is option A of the open decision D4 (§9); option B would report the
+nearest Neutral-only degree instead. Implementations follow option A until
+D4 is decided.
+
+Gap G4: the TypeScript heap leaks the Neutral statements of the last examined
+degree into a disconnected result (as `statements`, `neutral`, and `direct`).
+Corpus cases for this carry `gap:G4` ([conformance.md](conformance.md#known-gaps)).
+
+A disconnected result about `user:id:X` reports the bind at the deepest level
+the walk examined, `bind(R, X, ℓ*)`, where `ℓ*` is the level of the last hit
+check: `D − 1` when the walk ran to `maxDepth`, the last non-empty level when
+the frontier ran out, and `completeDepth` when a budget stopped the walk
+(§6.2). Binds never change at deeper levels (§6), so this is the most
+informed bind the walk saw. A connected result at degree `d` reports
+`bind(R, X, d − 1)`.
 
 ### 6.2 Guardrails
 
@@ -280,9 +300,28 @@ stay honest when a budget stops it.
 - **Level `ℓ` is complete** when every qualifying node of level `ℓ − 1` has
   been expanded. `completeDepth` is the deepest complete level (the root's
   level 0 is always complete).
-- Node and record budgets are checked **before** a level is expanded: if
-  expanding it would exceed the budget, the walk stops and that level is not
-  built. These budgets are deterministic.
+- **Reached nodes** are the nodes that have a level: the root (level 0) and
+  every `p` node that received a `level` in the pseudo-code above, whatever
+  the value of the statement that reached it (trust, Neutral, or distrust).
+  Subjects that are not `p` nodes (`user:id` unbound, `post:id`, `e`, other
+  `i`) never get a level and are not counted; neither is the query subject
+  unless it is itself a reached `p` node. Each node counts once.
+- **Scanned records** are the selected statements the expansion step
+  examines: one per (qualifying frontier author, peer subject) pair visited
+  in the buckets of `Chain(32009, TC)`, including records that are then
+  skipped (inactive, not value `1`, not a `p` subject, or already levelled).
+  The hit check (`sel(A, NS(ℓ), …)`, at most one record per frontier author)
+  is not counted. The count is cumulative over the walk.
+- Node and record budgets are checked **before** a level is committed: the
+  walk computes level `d` (the `next` list and the levels it assigns); if the
+  reached-node total would exceed `maxReachedNodes`, or the scanned-record
+  total would exceed `maxWalkRecords`, the walk stops, level `d` is discarded,
+  and `completeDepth = d − 1`. Equal to the budget is allowed. These budgets
+  are deterministic, so every implementation stops at the same level.
+- In the pseudo-code this gives one order per degree `d`: hit check with
+  level `d − 1` (complete), then build level `d`, then the budget check. So a
+  walk stopped while building level `d` has already made the hit check at
+  degree `d = completeDepth + 1`.
 - The deadline is checked before each level and at least every 4 096 scanned
   records inside a level. When it fires inside a level, the partial level is
   discarded.
@@ -293,6 +332,12 @@ stay honest when a budget stops it.
   the result is disconnected with `truncated: true`, `completeDepth`, and the
   reason (`timeBudget`, `nodeBudget`, `edgeBudget`). It never claims "no
   evidence" when it did not look.
+- **When `completeDepth` is reported:** only on results that a walk budget
+  truncated (`truncatedReasons` contains `timeBudget`, `nodeBudget`, or
+  `edgeBudget`). Connected results, and disconnected results that ended by
+  exhaustion or at `maxDepth`, omit it. `statementLimit`, `pathLimit`, and
+  `neighborhoodLimit` truncations do not stop the walk and do not add it.
+  `graph.field` always reports it (the field is the walk's level structure).
 - `maxDepth` is not truncation: stopping at `D` is the normal end of the walk.
 - The same rules apply to root-field builds and to the sync frontier.
 
@@ -454,6 +499,15 @@ npubs are also queued for a `10011` fetch, which strict mode needs.
 - Npub hints are published only from own evidence or confirmed binds
   ([identity-binding.md §9](identity-binding.md#9-publishing-rule)).
 - Question actions are local-only and never reach the model.
+
+**Open product decisions.** These are the owner's to take; the spec states
+the options and what v1 does meanwhile.
+
+| ID | Question | Option A | Option B | v1 meanwhile |
+| --- | --- | --- | --- | --- |
+| D4 | What a disconnected result says about Neutral evidence | Nothing: no statements, `neutral = 0`, no `direct` (§6.1) | Report the nearest Neutral-only degree as evidence, still `connected = false` (the UI can show "your network is watching this") | Option A is the model rule and the corpus `expectModel`; the heap's leak is gap G4 |
+| D5 | Default binding mode | `lenient` everywhere (closest to the extension today; a wrong nearest witness misleads the people who trust it) | `strict` on servers (no hop through an X account without a `10011`), `lenient` in the extension | `lenient` everywhere; `bindingMode` is set per query |
+| D6 | Context for witness-only statements by verifier services | `identity:attest`: not in `Chain(32009, identity)`, so the statement witnesses a bind (witnesses accept any `c`) without being a hop or trust evidence ([identity-binding.md §2](identity-binding.md#2-witness-statements)) | No separate context: verifiers publish `c=identity` like everyone else, so their witness is also a trust hop and trust evidence | `identity:attest` as written in identity-binding.md §2; nothing publishes it yet |
 
 ## 10. Constants and limits
 
