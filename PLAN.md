@@ -129,9 +129,21 @@ Acceptance: vendored bytes match; the ported extension tests pass (TG-3).
       prefixes, NIP-09, limited REQ, resolver / lookup / frontier / claims
       ops, error codes) and `runSession()`; the Personal Server runs it on
       every `npm test`.
-- [ ] More sessions (auth flows under each access setting, pushes,
-      guardrail responses) and the nightly run against both servers side by
-      side — needs the Global Server.
+- [x] Integration pass after the first Global Server run (105/106): the
+      G4 case `context-neutral-occupies-its-bucket` is tagged `gap:G4`
+      (`expectModel` / `expectCurrent`) with a model-correct companion;
+      gap-case convention ("gap fixed" for model runners) documented; lookup
+      post-selection filter cases; neighborhood one-arrow-per-author case;
+      G10 record-budget case.
+- [x] Sessions `ops-open.json` (27 steps: info, rating.batch,
+      lookup.outgoing / batch, neighborhood with rating arrows and
+      `valueFilter`, subscribe + push, NIP-09 `a` deletion, REQ authors +
+      kinds, scores below 0.001) and `walk-budgets.json` (5 steps). Runner:
+      numeric compare within `1e-9`, `$unordered`, `unordered` steps,
+      stray pushes dropped, capability gating (`requires` / `otherwise`
+      from `dtp.capabilities` / `dtp.gaps`).
+- [ ] Auth flows under each access setting (`members` reads / writes, NIP-42)
+      as sessions, and the nightly run against both servers side by side.
 
 ### TG-5 `@dtp/telemetry-ui` ✅
 
@@ -215,7 +227,12 @@ corpus tags affected cases `gap:Gn` with `expectCurrent`.
 
 ## What this session delivered
 
-TG-0 … TG-7 above, in commits after the imported specs. `npm run check`
+TG-0 … TG-7 above, in commits after the imported specs. The integration pass
+after the first Global Server run added the G4 tag and companion, new
+lookup / neighborhood / budget cases, two sessions, the runner features
+above, and spec wording for budgets (§6.2), disconnected results and
+`witnessDegree` (§6.1, identity-binding §8), neighborhood, `supported_nips`,
+error codes, and number formatting (resolver-api.md). `npm run check`
 (lint `--deny-warnings`, typecheck of every package and of all tests, Vitest,
 build) is green: 35 test files, 462 tests (198 ported extension tests for the
 heap / query / protocol layers and 26 for relay sync, all unchanged in logic;
@@ -229,6 +246,26 @@ generators, and more sessions.
 | --- | --- |
 | D3 | Every gap fix in `@dtp/trust-graph`; in particular **G10** (walk budgets: time / node / record, `completeDepth`) and **G12** (level structure → `graph.field`). Without them the Personal Server cannot offer `graph.field` or in-walk guardrails, so the session suite cannot pass on both servers. Also G8 (binding inside the walk): servers have no binding at all today |
 | D1 | Final home of the library (this repo vs upstream `DigitalTrustProtocol/Trust`) |
-| D4 | G4 disconnected-result rule |
-| D5 | Default binding mode per runtime |
-| D6 | Name of the witness-only context (`identity:attest` proposed) |
+| D4 | G4 disconnected-result rule. Options in wot-model.md §9; v1 uses option A (no statements) |
+| D5 | Default binding mode per runtime. Options in wot-model.md §9; v1 uses `lenient` |
+| D6 | Name of the witness-only context. Options in wot-model.md §9; `identity:attest` written, unused |
+
+## Protocol error codes: Personal Server vs Global Server
+
+Read-only comparison against resolver-api.md § Error codes (2026-09-30):
+PersonalServer HEAD, GlobalServer HEAD `6c9257d` plus its uncommitted
+working tree (in progress when read). Neither repo was edited; these are for
+their owners.
+
+| # | Behaviour | Personal Server | Global Server | Spec |
+| --- | --- | --- | --- | --- |
+| E1 | `reqId` already in flight | `DTP-ERR invalid` | HEAD: not checked (the second request replaces the first's cancel flag). Working tree: `DTP-ERR invalid` | `invalid` |
+| E2 | `DTP-CANCEL` | `DTP-ERR cancelled` when the operation next yields | `DTP-ERR cancelled` immediately; the late result is dropped | Either, at most once, never with `DTP-OK` |
+| E3 | `graph.field` | `DTP-ERR unsupported` (listed in `dtp.unsupported`, gap G12) | Implemented | Interim `unsupported` allowed |
+| E4 | `hopContext` other than `identity` | `DTP-ERR unsupported` | Accepted | Interim `unsupported` allowed |
+| E5 | `rate-limited` | Only as an `OK` prefix (heap edge limit); no `DTP-ERR rate-limited` | Only at HTTP upgrade (too many connections); no `DTP-ERR rate-limited` | `DTP-ERR` when `rateLimit` is exceeded; neither server implements `rateLimit` yet |
+| E6 | Banned pubkey | `EVENT`: `OK false blocked: pubkey is banned` (even with open writes); `AUTH`: `restricted:` | No ban list (NIP-86 `banpubkey` not implemented); non-members get `restricted:` like PS | `restricted` (PS `EVENT` differs) |
+| E7 | Kind `5` without a held target | `OK false blocked: no held event matches` | HEAD: `blocked:` only when it names no held kind; otherwise accepted. Working tree: `blocked: deletion matches no held event of its author` | `blocked:` when no held event or own `a` slot matches |
+| E8 | Storage failure on `EVENT` | `OK false error:` | `OK false error:` (metrics count it as `invalid`) | `error` |
+| E9 | NIP-86 | Implemented; `supported_nips` includes 86 | Returns `unsupported:`; `supported_nips` omits 86 | 86 only where implemented: both correct |
+| E10 | `not-found` | In the code type, never emitted | Never emitted | Reserved |
