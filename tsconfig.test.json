@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["node"],
+    "paths": {
+      "@dtp/trust-graph": ["./packages/trust-graph/src/main.ts"],
+      "@dtp/trust-graph/constants": ["./packages/trust-graph/src/constants.ts"],
+      "@dtp/trust-graph/threshold": ["./packages/trust-graph/src/threshold.ts"],
+      "@dtp/trust-protocol": ["./packages/trust-protocol/src/index.ts"],
+      "@dtp/trust-query": ["./packages/trust-query/src/index.ts"],
+      "@dtp/trust-query/testing": ["./packages/trust-query/src/testing.ts"],
+      "@dtp/resolver-client": ["./packages/resolver-client/src/index.ts"],
+      "@dtp/conformance": ["./packages/conformance/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/test/**/*.ts", "vitest.config.ts"]
+}

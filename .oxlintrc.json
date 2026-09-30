@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "oxc"],
+  "ignorePatterns": ["**/dist/**", "**/node_modules/**"],
+  "rules": {},
+  "overrides": [
+    {
+      "files": ["packages/trust-graph/src/**"],
+      "rules": {
+        "no-unused-vars": "off"
+      }
+    }
+  ]
+}
