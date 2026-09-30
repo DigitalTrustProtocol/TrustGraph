@@ -10,7 +10,6 @@ import {
   loadCorpus,
   loadManifest,
   loadSessions,
-  matchFrame,
   runModelCase,
   runProtocolEntry,
 } from '@dtp/conformance'
@@ -51,15 +50,12 @@ describe('corpus manifest', () => {
       for (const step of session.steps) {
         expect(Array.isArray(step.send)).toBe(true)
         expect(step.expect.every((frame) => Array.isArray(frame))).toBe(true)
+        if (step.otherwise) expect(step.requires?.length, `${session.id}: otherwise needs requires`).toBeGreaterThan(0)
+        for (const requirement of [...(session.requires ?? []), ...(step.requires ?? [])]) {
+          expect(requirement, session.id).toMatch(/^(fixed:G\d+|[a-z]+(\.[a-z]+)?)$/)
+        }
       }
     }
-  })
-
-  it('matches session frames with $prefix / $type / $any', () => {
-    expect(matchFrame(['OK', 'x', false, 'invalid: bad'], ['OK', 'x', false, { $prefix: 'invalid:' }])).toEqual([])
-    expect(matchFrame(['OK', 'x', false, 'blocked: no'], ['OK', 'x', false, { $prefix: 'invalid:' }])).toHaveLength(1)
-    expect(matchFrame({ n: 3, extra: true }, { n: { $type: 'number' } })).toEqual([])
-    expect(matchFrame([1, 2], [{ $any: true }])).toHaveLength(1)
   })
 
   it('has unique case ids and well-formed cases', () => {

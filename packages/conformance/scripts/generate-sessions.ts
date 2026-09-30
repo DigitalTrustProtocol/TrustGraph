@@ -135,6 +135,181 @@ const session = {
   ],
 }
 
+// Session 2: every other operation. Scores below 0.001 check that runners
+// compare numbers, not their JSON text (JS writes 0.0000015, Rust 1.5e-6).
+const dave = keyOf('dave')
+const DAVE = getPublicKey(dave)
+const POST_KEY = `i:${POST.value}`
+const opsRootAlice = await trust(root, { type: 'p', value: ALICE }, '1', T)
+const opsRootCarol = await trust(root, { type: 'p', value: CAROL }, '1', T + 1)
+const opsAliceBob = await trust(alice, { type: 'p', value: BOB }, '1', T + 2)
+const opsCarolBob = await trust(carol, { type: 'p', value: BOB }, '0', T + 3)
+const opsAlicePost = await trust(alice, POST, '1', T + 4, { context: '' })
+const opsAliceRating = await rating(alice, '0.000001', T + 5)
+const opsCarolRating = await rating(carol, '0.000002', T + 6)
+const opsRootDave = await trust(root, { type: 'p', value: DAVE }, '1', T + 20)
+const alicePostSlot = `32009:${ALICE}:${opsAlicePost.tags.find((tag) => tag[0] === 'd')![1]}`
+const slotDeletion = clean(finalizeEvent({ kind: 5, created_at: T + 30, content: '', tags: [['a', alicePostSlot], ['k', '32009']] }, alice))
+const pNode = (pubkey: string, depth: number) => ({ subject: { type: 'p', value: pubkey }, depth })
+const postNode = (depth: number) => ({ subject: POST, depth })
+const unordered = (items: unknown[]) => ({ $unordered: items })
+
+const opsSession = {
+  id: 'session-ops-open',
+  api: 'v1',
+  description: 'Open access, empty server. The operations basic-open does not reach: info, rating.batch, lookup.outgoing, lookup.batch, graph.neighborhood (trust and rating arrows, valueFilter), subscribe / unsubscribe with a graph push, NIP-09 a-tag deletion, REQ authors + kinds, and graph.field (capability-gated).',
+  config: { 'auth.reads': 'open', 'auth.writes': 'open', scopeProfile: 'x.com' },
+  steps: [
+    {
+      send: ['DTP', 'i1', 'info', {}],
+      expect: [['DTP-OK', 'i1', { api: 'v1', model: 'dtp-wot/1', capabilities: { $type: 'array' }, graphVersion: { $type: 'number' } }]],
+    },
+    ...[opsRootAlice, opsRootCarol, opsAliceBob, opsCarolBob, opsAlicePost, opsAliceRating, opsCarolRating].map((event) => ({
+      send: ['EVENT', event],
+      expect: [ok(event.id, true)],
+    })),
+    {
+      send: ['DTP', 's1', 'session.update', { defaults: { rootPubkey: ROOT, followTrustThreshold: 75, followTrustRed: 25, bounds: { maxDepth: 4 } } }],
+      expect: [['DTP-OK', 's1', { defaults: { rootPubkey: ROOT } }]],
+    },
+    {
+      note: 'Neutral is counted evidence, not a hop',
+      send: ['DTP', 'q1', 'trust.query', { subject: { type: 'p', value: BOB } }],
+      expect: [['DTP-OK', 'q1', {
+        connected: true, degree: 2, trust: 1, neutral: 1, distrust: 0, resolution: 'trusted',
+        statements: [{ eventId: opsCarolBob.id, value: 0, distance: 1 }, { eventId: opsAliceBob.id, value: 1, distance: 1 }],
+      }]],
+    },
+    {
+      note: 'scores below 0.001',
+      send: ['DTP', 'q2', 'rating.query', { subject: POST }],
+      expect: [['DTP-OK', 'q2', {
+        degree: 2, claimCount: 2, averageScore: 0.0000015,
+        claims: [{ eventId: opsCarolRating.id, score: 0.000002 }, { eventId: opsAliceRating.id, score: 0.000001 }],
+      }]],
+    },
+    {
+      send: ['DTP', 'q3', 'rating.batch', { items: [{ key: 'post', subject: POST }, { key: 'unrated', subject: { type: 'i', value: 'post:id:1' } }] }],
+      expect: [['DTP-OK', 'q3', {
+        graphVersion: { $type: 'number' },
+        results: { post: { claimCount: 2, averageScore: 0.0000015 }, unrated: { claimCount: 0, degree: 0 } },
+      }]],
+    },
+    {
+      send: ['DTP', 'l1', 'lookup.outgoing', { keys: [`p:${ALICE}`], kinds: [32009, 32014], contextMatch: 'any' }],
+      expect: [['DTP-OK', 'l1', {
+        items: [
+          { eventId: opsAliceRating.id, kind: 32014, score: 0.000001 },
+          { eventId: opsAlicePost.id, kind: 32009, value: 1, context: '' },
+          { eventId: opsAliceBob.id, kind: 32009, value: 1, context: 'identity' },
+        ],
+      }]],
+    },
+    {
+      send: ['DTP', 'l2', 'lookup.batch', { queries: [
+        { id: 'in', op: 'incoming', params: { keys: [`p:${BOB}`], context: 'identity' } },
+        { id: 'count', op: 'counts', params: { keys: [POST_KEY], direction: 'incoming', kinds: [32014] } },
+        { id: 'bad', op: 'incoming', params: { keys: ['nope'] } },
+      ] }],
+      expect: [['DTP-OK', 'l2', {
+        results: {
+          in: { items: [{ eventId: opsCarolBob.id }, { eventId: opsAliceBob.id }] },
+          count: { counts: { [POST_KEY]: { ratings: 2 } } },
+        },
+        errors: { bad: prefix('invalid:') },
+      }]],
+    },
+    {
+      note: 'person center, context identity (buckets identity and general): trust edges both ways, no rating arrows',
+      send: ['DTP', 'n1', 'graph.neighborhood', { centerId: `p:${ALICE}`, context: 'identity' }],
+      expect: [['DTP-OK', 'n1', {
+        truncated: false,
+        nodes: unordered([pNode(ALICE, 0), pNode(ROOT, 1), pNode(BOB, 1), postNode(1)]),
+        edges: unordered([
+          { eventId: opsRootAlice.id, value: 1, context: 'identity', depth: 1 },
+          { eventId: opsAliceBob.id, value: 1, context: 'identity', depth: 1 },
+          { eventId: opsAlicePost.id, value: 1, context: '', depth: 1 },
+        ]),
+      }]],
+    },
+    {
+      note: 'post center: Alice has a trust edge, so only Carol gets a rating arrow (score < 50 draws -1)',
+      send: ['DTP', 'n2', 'graph.neighborhood', { centerId: POST_KEY, direction: 'in' }],
+      expect: [['DTP-OK', 'n2', {
+        nodes: unordered([postNode(0), pNode(ALICE, 1), pNode(CAROL, 1)]),
+        edges: unordered([
+          { eventId: opsAlicePost.id, value: 1 },
+          { eventId: opsCarolRating.id, value: -1, context: '' },
+        ]),
+      }]],
+    },
+    {
+      note: 'valueFilter distrust drops the trust edge first, so Alice gets a rating arrow too',
+      send: ['DTP', 'n3', 'graph.neighborhood', { centerId: POST_KEY, direction: 'in', valueFilter: 'distrust' }],
+      expect: [['DTP-OK', 'n3', {
+        nodes: unordered([postNode(0), pNode(ALICE, 1), pNode(CAROL, 1)]),
+        edges: unordered([{ eventId: opsAliceRating.id, value: -1 }, { eventId: opsCarolRating.id, value: -1 }]),
+      }]],
+    },
+    {
+      note: 'capability-gated: a server without graph.field answers unsupported',
+      requires: ['graph.field'],
+      send: ['DTP', 'g1', 'graph.field', {}],
+      expect: [['DTP-OK', 'g1', { graphVersion: { $type: 'number' }, completeDepth: { $type: 'number' }, levels: { $type: 'array' } }]],
+      otherwise: [['DTP-ERR', 'g1', 'unsupported', { $type: 'string' }]],
+    },
+    { send: ['DTP', 'u1', 'subscribe', { topics: ['graph'] }], expect: [['DTP-OK', 'u1', { topics: ['graph'] }]] },
+    {
+      note: 'a graph push follows the write; OK and push may arrive in either order',
+      send: ['EVENT', opsRootDave],
+      unordered: true,
+      expect: [ok(opsRootDave.id, true), ['DTP-PUSH', 'graph', { graphVersion: { $type: 'number' } }]],
+    },
+    { send: ['DTP', 'u2', 'unsubscribe', { topics: ['graph'] }], expect: [['DTP-OK', 'u2', { topics: [] }]] },
+    { note: 'unknown topic', send: ['DTP', 'u3', 'subscribe', { topics: ['nope'] }], expect: [['DTP-ERR', 'u3', 'invalid', { $type: 'string' }]] },
+    { note: 'NIP-09 a-tag deletion clears the slot', send: ['EVENT', slotDeletion], expect: [ok(slotDeletion.id, true)] },
+    { note: 'deleted slot refuses a re-push', send: ['EVENT', opsAlicePost], expect: [ok(opsAlicePost.id, false, prefix('blocked:'))] },
+    {
+      send: ['DTP', 'l3', 'lookup.outgoing', { keys: [`p:${ALICE}`], contextMatch: 'any' }],
+      expect: [['DTP-OK', 'l3', { items: [{ eventId: opsAliceBob.id }] }]],
+    },
+    { note: 'REQ authors + kinds', send: ['REQ', 'r1', { authors: [ALICE], kinds: [32009] }], expect: [['EVENT', 'r1', opsAliceBob], ['EOSE', 'r1']] },
+    { send: ['REQ', 'r2', { authors: [ALICE], kinds: [32014] }], expect: [['EVENT', 'r2', opsAliceRating], ['EOSE', 'r2']] },
+  ],
+}
+
+// Session 3: walk budgets (wot-model §6.2). Gated on gap G10: a server whose
+// walk has no budgets lists G10 in dtp.gaps and skips the session.
+const budgetRootAlice = await trust(root, { type: 'p', value: ALICE }, '1', T)
+const budgetAliceBob = await trust(alice, { type: 'p', value: BOB }, '1', T + 1)
+const budgetBobCarol = await trust(bob, { type: 'p', value: CAROL }, '1', T + 2)
+
+const budgetSession = {
+  id: 'session-walk-budgets',
+  api: 'v1',
+  description: 'Server started with maxReachedNodes = 2 (root + Alice). A hit at completeDepth + 1 is exact; a subject beyond it is disconnected and truncated with nodeBudget and completeDepth 1.',
+  config: { 'auth.reads': 'open', 'auth.writes': 'open', scopeProfile: 'x.com', 'limits.maxReachedNodes': 2 },
+  requires: ['fixed:G10'],
+  steps: [
+    ...[budgetRootAlice, budgetAliceBob, budgetBobCarol].map((event) => ({ send: ['EVENT', event], expect: [ok(event.id, true)] })),
+    {
+      note: 'hit at degree 2 = completeDepth + 1 uses complete levels only',
+      send: ['DTP', 'b1', 'trust.query', { rootPubkey: ROOT, subject: { type: 'p', value: BOB } }],
+      expect: [['DTP-OK', 'b1', { connected: true, degree: 2, trust: 1 }]],
+    },
+    {
+      note: 'level 2 would reach a third node',
+      send: ['DTP', 'b2', 'trust.query', { rootPubkey: ROOT, subject: { type: 'p', value: CAROL } }],
+      expect: [['DTP-OK', 'b2', { connected: false, degree: 0, statements: [], truncated: true, truncatedReasons: ['nodeBudget'], completeDepth: 1 }]],
+    },
+  ],
+}
+
 mkdirSync(out, { recursive: true })
-writeFileSync(resolve(out, 'basic-open.json'), `${JSON.stringify(session, null, 2)}\n`)
-console.log(`sessions: 1 (${session.steps.length} steps)`)
+const sessions: Record<string, { steps: unknown[] }> = {
+  'basic-open.json': session,
+  'ops-open.json': opsSession,
+  'walk-budgets.json': budgetSession,
+}
+for (const [file, content] of Object.entries(sessions)) writeFileSync(resolve(out, file), `${JSON.stringify(content, null, 2)}\n`)
+console.log(`sessions: ${Object.keys(sessions).length} (${Object.values(sessions).map((s) => s.steps.length).join(' + ')} steps)`)

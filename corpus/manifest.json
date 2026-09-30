@@ -20,6 +20,8 @@
     "protocol/kind-5-and-others.json"
   ],
   "sessions": [
-    "sessions/basic-open.json"
+    "sessions/basic-open.json",
+    "sessions/ops-open.json",
+    "sessions/walk-budgets.json"
   ]
 }
