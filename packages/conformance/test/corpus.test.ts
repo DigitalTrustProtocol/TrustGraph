@@ -9,6 +9,8 @@ import {
   lintCase,
   loadCorpus,
   loadManifest,
+  loadSessions,
+  matchFrame,
   runModelCase,
   runProtocolEntry,
 } from '@dtp/conformance'
@@ -37,6 +39,27 @@ describe('corpus manifest', () => {
       .sort()
     expect([...manifest.cases].sort()).toEqual(onDisk)
     expect(new Set(manifest.cases).size).toBe(manifest.cases.length)
+  })
+
+  it('lists every session file and each session is well formed', () => {
+    const sessions = loadSessions()
+    const onDisk = filesUnder(join(corpusDir, 'sessions')).map((path) => relative(corpusDir, path).replace(/\\/g, '/'))
+    expect(sessions.map((s) => s.file).sort()).toEqual(onDisk.sort())
+    for (const { session } of sessions) {
+      expect(session.api).toBe('v1')
+      expect(session.steps.length).toBeGreaterThan(0)
+      for (const step of session.steps) {
+        expect(Array.isArray(step.send)).toBe(true)
+        expect(step.expect.every((frame) => Array.isArray(frame))).toBe(true)
+      }
+    }
+  })
+
+  it('matches session frames with $prefix / $type / $any', () => {
+    expect(matchFrame(['OK', 'x', false, 'invalid: bad'], ['OK', 'x', false, { $prefix: 'invalid:' }])).toEqual([])
+    expect(matchFrame(['OK', 'x', false, 'blocked: no'], ['OK', 'x', false, { $prefix: 'invalid:' }])).toHaveLength(1)
+    expect(matchFrame({ n: 3, extra: true }, { n: { $type: 'number' } })).toEqual([])
+    expect(matchFrame([1, 2], [{ $any: true }])).toHaveLength(1)
   })
 
   it('has unique case ids and well-formed cases', () => {

@@ -19,6 +19,8 @@ export interface CorpusManifest {
   corpus: string
   model: string
   cases: string[]
+  /** Session-suite files (conformance.md § One API). */
+  sessions?: string[]
 }
 
 const PLACEHOLDER = /@([A-Za-z0-9_.-]+)/g

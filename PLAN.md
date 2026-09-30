@@ -125,8 +125,13 @@ Acceptance: vendored bytes match; the ported extension tests pass (TG-3).
       independence (outside gap and own-evidence setups), lookups ignore
       the observer, pages add up, counts = items, and a non-vacuity check.
 - [ ] Differential fuzzing generators (`corpus/generators/`) — later.
-- [ ] Session suite `corpus/sessions/*.json` (both servers, byte-equal
-      transcripts) — needs the Global Server; not started.
+- [x] Session suite v1: `corpus/sessions/basic-open.json` (29 steps: ingest
+      prefixes, NIP-09, limited REQ, resolver / lookup / frontier / claims
+      ops, error codes) and `runSession()`; the Personal Server runs it on
+      every `npm test`.
+- [ ] More sessions (auth flows under each access setting, pushes,
+      guardrail responses) and the nightly run against both servers side by
+      side — needs the Global Server.
 
 ### TG-5 `@dtp/telemetry-ui` ✅
 
@@ -216,7 +221,7 @@ build) is green: 35 test files, 462 tests (198 ported extension tests for the
 heap / query / protocol layers and 26 for relay sync, all unchanged in logic;
 110 corpus cases; property checks; new-module tests; 48 telemetry-UI and 46
 resolver-client tests). Remaining: TG-8 (⛔), TG-9 (⛔ D3), TG-10, corpus
-generators and the session suite.
+generators, and more sessions.
 
 ## Blockers (need the owner's decision)
 
