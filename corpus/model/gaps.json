@@ -119,6 +119,33 @@
           "expectCurrent": { "connected": true, "degree": 3 }
         }
       ]
+    },
+    {
+      "id": "gap-g10-record-budget",
+      "model": "dtp-wot/1",
+      "tags": ["walk", "budget", "gap:G10"],
+      "profile": "x.com",
+      "description": "wot-model.md 6.2 scanned-record counting. Building level 1 scans the root's two selected statements (alice, and the post, which is scanned but not a hop): 2 records. Building level 2 scans alice's statement about bob: 3 in total. Hit checks are not counted. With maxWalkRecords 2 level 2 does not fit (completeDepth 1, edgeBudget); with 3 it fits and the hit at degree 3 is exact and not truncated. Today's walk has no budgets.",
+      "records": [
+        { "id": "@g10r-r-a", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@g10r-r-post", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:5", "context": "identity", "value": 1 },
+        { "id": "@g10r-a-b", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@bob", "context": "identity", "value": 1 },
+        { "id": "@g10r-b-t", "pubkey": "@bob", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "user:id:77", "context": "identity", "value": 1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:77" }, "context": "identity", "now": 10, "budgets": { "maxWalkRecords": 2 } },
+          "expectModel": { "connected": false, "degree": 0, "truncated": true, "truncatedReasons": ["edgeBudget"], "completeDepth": 1 },
+          "expectCurrent": { "connected": true, "degree": 3 }
+        },
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "user:id:77" }, "context": "identity", "now": 10, "budgets": { "maxWalkRecords": 3 } },
+          "expectModel": { "connected": true, "degree": 3, "sourceEventIds": ["@g10r-b-t"], "completeDepth": null },
+          "expectCurrent": { "connected": true, "degree": 3, "sourceEventIds": ["@g10r-b-t"] }
+        }
+      ]
     }
   ]
 }

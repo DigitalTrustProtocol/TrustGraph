@@ -90,6 +90,29 @@
         },
         {
           "type": "lookup-incoming",
+          "note": "values filter after selection: Carol's selected statement is her identity +1, so her general Neutral (@l3) is not surfaced.",
+          "input": { "keys": ["i:user:id:100"], "context": "identity", "values": [0], "now": 100 },
+          "expect": { "items": [] }
+        },
+        {
+          "type": "lookup-incoming",
+          "note": "raw has no selection, so the same filter returns @l3.",
+          "input": { "keys": ["i:user:id:100"], "context": "identity", "mode": "raw", "values": [0], "now": 100 },
+          "expect": { "items": ["@l3"] }
+        },
+        {
+          "type": "lookup-incoming",
+          "note": "since/until filter after selection: Carol's selected @l10 (created 25) is outside since 26, and @l3 is not promoted in its place.",
+          "input": { "keys": ["i:user:id:100"], "context": "identity", "since": 26, "now": 100 },
+          "expect": { "items": [] }
+        },
+        {
+          "type": "lookup-incoming",
+          "input": { "keys": ["i:user:id:100"], "context": "identity", "mode": "raw", "since": 26, "now": 100 },
+          "expect": { "items": ["@l3"] }
+        },
+        {
+          "type": "lookup-incoming",
           "input": { "keys": ["i:user:id:100"], "context": "identity", "mode": "raw", "since": 20, "until": 30, "now": 100 },
           "expect": { "items": ["@l3", "@l10", "@l2"] }
         },

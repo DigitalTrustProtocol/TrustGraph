@@ -59,8 +59,9 @@
     {
       "id": "context-neutral-occupies-its-bucket",
       "model": "dtp-wot/1",
-      "tags": ["context", "neutral"],
+      "tags": ["context", "neutral", "gap:G4"],
       "profile": "x.com",
+      "description": "The root's Neutral in security:audit hides its general trust (the Neutral occupies the nearer bucket), so nothing is counted and the walk ends disconnected. Model (wot-model 6.1): no statements, no direct. Today the Neutral leaks into the disconnected result as statement and direct.",
       "records": [
         { "id": "@c-general", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 1 },
         { "id": "@c-neutral", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "context": "security:audit", "value": 0, "content": "Watching this purpose." }
@@ -69,7 +70,37 @@
         {
           "type": "trust",
           "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "security:audit", "now": 10 },
-          "expect": { "resolution": "none", "trust": 0, "direct": { "eventId": "@c-neutral", "value": 0, "content": "Watching this purpose." } }
+          "expectModel": { "connected": false, "degree": 0, "resolution": "none", "trust": 0, "neutral": 0, "statements": [], "direct": null },
+          "expectCurrent": {
+            "connected": false, "degree": 0, "resolution": "none", "trust": 0, "neutral": 1,
+            "statements": [{ "eventId": "@c-neutral", "value": 0 }],
+            "direct": { "eventId": "@c-neutral", "value": 0, "content": "Watching this purpose." }
+          }
+        }
+      ]
+    },
+    {
+      "id": "context-neutral-occupies-its-bucket-connected",
+      "model": "dtp-wot/1",
+      "tags": ["context", "neutral"],
+      "profile": "x.com",
+      "description": "Companion without the gap: the root's Neutral in security:audit still hides its general trust, so degree 1 counts nothing and the walk reaches Alice's distrust at degree 2. The root's general +1 never counts.",
+      "records": [
+        { "id": "@c-root-alice", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "p", "subject": "@alice", "context": "identity", "value": 1 },
+        { "id": "@c-general", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "value": 1 },
+        { "id": "@c-neutral", "pubkey": "@root", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:42", "context": "security:audit", "value": 0 },
+        { "id": "@c-alice-post", "pubkey": "@alice", "kind": 32009, "created_at": 2, "subjectType": "i", "subject": "post:id:42", "value": -1 }
+      ],
+      "queries": [
+        {
+          "type": "trust",
+          "input": { "rootPubkey": "@root", "subject": { "type": "i", "value": "post:id:42" }, "context": "security:audit", "now": 10 },
+          "expect": {
+            "connected": true, "degree": 2, "resolution": "distrusted", "trust": 0, "distrust": 1, "neutral": 0,
+            "sourceEventIds": ["@c-alice-post"],
+            "statements": [{ "eventId": "@c-alice-post", "author": "@alice", "contextMatch": "general", "distance": 1, "value": -1 }],
+            "direct": null
+          }
         }
       ]
     },

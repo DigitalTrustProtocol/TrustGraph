@@ -75,6 +75,41 @@
           }
         }
       ]
+    },
+    {
+      "id": "neighborhood-rating-arrow-one-per-author",
+      "model": "dtp-wot/1",
+      "tags": ["neighborhood", "rating"],
+      "profile": "x.com",
+      "description": "resolver-api.md graph.neighborhood: an author whose 32009 edge to the post is in the result gets no rating arrow. valueFilter applies first, so with distrust the trust edge is gone and the rating (score < 50 draws -1) appears.",
+      "records": [
+        { "id": "@no-trust", "pubkey": "@alice", "kind": 32009, "created_at": 1, "subjectType": "i", "subject": "post:id:7", "value": 1 },
+        { "id": "@no-rate-alice", "pubkey": "@alice", "kind": 32014, "created_at": 2, "subjectType": "i", "subject": "post:id:7", "value": 10, "scopeRank": 2 },
+        { "id": "@no-rate-bob", "pubkey": "@bob", "kind": 32014, "created_at": 3, "subjectType": "i", "subject": "post:id:7", "value": 90, "scopeRank": 2 }
+      ],
+      "queries": [
+        {
+          "type": "neighborhood",
+          "input": { "centerId": "i:post:id:7", "direction": "in", "valueFilter": "both", "now": 10 },
+          "expect": {
+            "edges": [
+              { "eventId": "@no-rate-bob", "from": "p:@bob", "value": 1 },
+              { "eventId": "@no-trust", "from": "p:@alice", "value": 1 }
+            ]
+          }
+        },
+        {
+          "type": "neighborhood",
+          "input": { "centerId": "i:post:id:7", "direction": "in", "valueFilter": "distrust", "now": 10 },
+          "expect": { "edges": [{ "eventId": "@no-rate-alice", "from": "p:@alice", "value": -1 }] }
+        },
+        {
+          "type": "neighborhood",
+          "note": "Ratings only on post centers with direction in.",
+          "input": { "centerId": "i:post:id:7", "direction": "out", "valueFilter": "both", "now": 10 },
+          "expect": { "edges": [] }
+        }
+      ]
     }
   ]
 }
