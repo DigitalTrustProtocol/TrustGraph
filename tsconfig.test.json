@@ -13,6 +13,7 @@
       "@dtp/trust-query": ["./packages/trust-query/src/index.ts"],
       "@dtp/trust-query/testing": ["./packages/trust-query/src/testing.ts"],
       "@dtp/resolver-client": ["./packages/resolver-client/src/index.ts"],
+      "@dtp/relay-sync": ["./packages/relay-sync/src/index.ts"],
       "@dtp/conformance": ["./packages/conformance/src/index.ts"]
     }
   },

@@ -12,6 +12,7 @@
     "packages/trust-graph",
     "packages/trust-protocol",
     "packages/trust-query",
+    "packages/relay-sync",
     "packages/resolver-client",
     "packages/telemetry-ui",
     "packages/conformance"

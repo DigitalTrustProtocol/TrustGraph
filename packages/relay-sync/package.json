@@ -1,0 +1,25 @@
+{
+  "name": "@dtp/relay-sync",
+  "version": "0.1.0",
+  "description": "Bounded Nostr relay synchronizer for kind 32009 / 32014 trust graphs: frontier BFS, cursors, retry, live subscriptions",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json && node ../../scripts/fix-esm-extensions.mjs dist"
+  },
+  "dependencies": {
+    "@dtp/trust-protocol": "0.1.0",
+    "nostr-tools": "^2.24.1"
+  }
+}
